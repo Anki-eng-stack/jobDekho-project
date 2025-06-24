@@ -6,7 +6,11 @@ const {
   login,
   getProfile,
   getAdminDashboard,
-  getEmail
+  getEmail,
+  requestPasswordReset,
+  resetPassword,
+  sendOTP,
+  verifyOTP
 } = require("../controllers/authController");
 
 const { protect, authorize } = require("../middleware/authMiddleware");
@@ -15,10 +19,18 @@ const { protect, authorize } = require("../middleware/authMiddleware");
 router.post("/signup", signup);
 router.post("/login", login);
 
-// 🔐 Protected Routes
-router.get("/profile", protect, getProfile); // Any logged-in user
+// 🔐 OTP-based login
+router.post("/send-otp", sendOTP);      // Send OTP to email
+router.post("/verify-otp", verifyOTP);  // Verify OTP and login
 
-// 🔐 Admin Dashboard
+// 🔐 Password Reset
+router.post("/request-reset", requestPasswordReset); 
+router.post("/reset-password/:token", resetPassword); 
+
+// 🔐 Protected Routes
+router.get("/profile", protect, getProfile);
+
+// 🔐 Admin-only
 router.get("/admin-dashboard", protect, authorize("admin"), getAdminDashboard);
 
 // 🔐 Get logged-in user's email

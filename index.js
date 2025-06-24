@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 // Route Imports
 const authRoutes = require('./routes/authRoutes');
@@ -14,20 +15,24 @@ const reviewRoutes = require('./routes/reviewRoutes');
 // const recruiterRoutes = require('./routes/recruiterRoutes');
 // const adminRoutes = require('./routes/adminRoutes');
 
-const { apiLimiter } = require('./middleware/rateLimiter');
-
+// Load .env variables
 dotenv.config();
+
+// Connect to MongoDB
 connectDB();
 
 const app = express();
 
 // Global Middlewares
-app.use(express.json());
-app.use(helmet());
-app.use(cors());
-app.use(cookieParser());
+app.use(express.json()); // Parse JSON request body
+app.use(helmet());       // Set secure HTTP headers
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  credentials: true
+}));
+app.use(cookieParser()); // Parse cookies
 
-// Rate Limiter (optional)
+// Apply rate limiter to all /api routes
 app.use('/api', apiLimiter);
 
 // Mount Routes
@@ -39,6 +44,19 @@ app.use('/api/reviews', reviewRoutes);
 // app.use('/api/recruiter', recruiterRoutes);
 // app.use('/api/admin', adminRoutes);
 
-// Server Start
+// Root Route
+app.get('/', (req, res) => {
+  res.send('🚀 JobDekho API is running');
+});
+
+// Error Handling Middleware (optional)
+app.use((err, req, res, next) => {
+  console.error("❌ Error:", err.message);
+  res.status(500).json({ error: "Server Error" });
+});
+
+// Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
