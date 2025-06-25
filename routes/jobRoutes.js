@@ -1,12 +1,19 @@
-const express = require("express");
-const router = express.Router();
+const router = require("express").Router();
+const {
+  createJob,
+  getAllJobs,
+  getJobById,
+  updateJob,
+  deleteJob
+} = require("../controllers/jobController");
+
 const { protect, authorize } = require("../middleware/authMiddleware");
-const { createJob, getAllJobs } = require("../controllers/jobController");
 
-// ✅ Only recruiter or admin can post jobs
-router.post("/", protect, authorize("recruiter", "admin"), createJob);
+router.get("/", getAllJobs); // Public
+router.get("/:id", getJobById); // Public
 
-// ✅ Public route to get jobs (with search/pagination)
-router.get("/", getAllJobs);
+router.post("/", protect, authorize("recruiter", "admin"), createJob); // Recruiter/Admin
+router.put("/:id", protect, authorize("recruiter", "admin"), updateJob); // Recruiter/Admin
+router.delete("/:id", protect, authorize("recruiter", "admin"), deleteJob); // Recruiter/Admin
 
 module.exports = router;

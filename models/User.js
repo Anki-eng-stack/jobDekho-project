@@ -14,13 +14,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Email is required"],
       unique: true,
-      lowercase: true
+      lowercase: true,
+      trim: true // ✅ optional but useful
     },
     password: {
       type: String,
       required: [true, "Password is required"],
       minlength: 6,
-      select: false // Don't return password in queries by default
+      select: false
     },
     role: {
       type: String,
@@ -31,21 +32,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-
-    // 🔐 Reset Password Fields
-    resetPasswordToken: {
-      type: String,
-      default: undefined
-    },
-    resetPasswordExpire: {
-      type: Date,
-      default: undefined
-    },
-
-    // 🔑 OTP Login Fields
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
     otp: {
       type: String,
-      select: false // Keep secure, select only when needed
+      select: false
     },
     otpExpire: {
       type: Date,
@@ -55,10 +46,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔐 Hash password before saving
+// Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-
   try {
     this.password = await bcrypt.hash(this.password, 10);
     next();
@@ -67,14 +57,13 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-// 🔒 Compare input password with hashed one
+// Compare password
 userSchema.methods.comparePwd = function (plainPwd) {
   return bcrypt.compare(plainPwd, this.password);
 };
 
-// 📩 Send verification email after account creation
+// Send verification email after creation
 userSchema.post('save', async function (doc, next) {
-  // Only send verification email on *new* user creation
   if (doc.isNew) {
     try {
       const token = jwt.sign({ id: doc._id }, process.env.JWT_SECRET, {

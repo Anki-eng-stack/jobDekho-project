@@ -1,65 +1,45 @@
 const Review = require("../models/Review");
 
-// ✅ Create a review
 exports.createReview = async (req, res) => {
   try {
-    const { company, title, pros, cons, rating, jobRole, yearsWorked } = req.body;
+    const { company, rating, review } = req.body;
 
-    const review = await Review.create({
-      user: req.user.id,
+    const newReview = await Review.create({
       company,
-      title,
-      pros,
-      cons,
       rating,
-      jobRole,
-      yearsWorked,
+      review,
+      user: req.user.id
     });
 
-    res.status(201).json({ success: true, review });
+    res.status(201).json({ message: "Review posted", newReview });
   } catch (err) {
-    res.status(500).json({ success: false, error: "Failed to submit review" });
+    res.status(500).json({ error: "Failed to post review" });
   }
 };
 
-// ✅ Get all reviews (filter by company)
 exports.getAllReviews = async (req, res) => {
   try {
-    const { company } = req.query;
-    const filter = company ? { company } : {};
-
-    const reviews = await Review.find(filter).populate("user", "name role");
-
-    res.json({ success: true, reviews });
+    const reviews = await Review.find().populate("user", "name role");
+    res.json(reviews);
   } catch (err) {
-    res.status(500).json({ success: false, error: "Failed to fetch reviews" });
+    res.status(500).json({ error: "Failed to fetch reviews" });
   }
 };
-
-// ✅ Upvote a review
-exports.upvoteReview = async (req, res) => {
+exports.deleteReview = async (req, res) => {
   try {
-    const review = await Review.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { upvotes: 1 } },
-      { new: true }
-    );
-    res.json({ success: true, review });
-  } catch (err) {
-    res.status(500).json({ success: false, error: "Upvote failed" });
-  }
-};
+    const review = await Review.findById(req.params.id);
 
-// ✅ Report a review
-exports.reportReview = async (req, res) => {
-  try {
-    const review = await Review.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { reports: 1 } },
-      { new: true }
-    );
-    res.json({ success: true, review });
+    if (!review) return res.status(404).json({ error: "Review not found" });
+
+    // Only the user who posted the review or an admin can delete it
+    if (review.user.toString() !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Not authorized to delete this review" });
+    }
+
+    await review.deleteOne();
+    res.json({ message: "Review deleted successfully" });
   } catch (err) {
-    res.status(500).json({ success: false, error: "Report failed" });
+    console.error("Delete review error:", err.message);
+    res.status(500).json({ error: "Failed to delete review" });
   }
 };

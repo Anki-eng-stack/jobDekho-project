@@ -8,7 +8,7 @@ const {
   sendResetPasswordEmail
 } = require("../utils/sendEmail");
 
-// ✅ Token generator
+// 🔐 Token generator
 const generateToken = (user) =>
   jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_LIFETIME || "7d"
@@ -36,15 +36,17 @@ exports.signup = async (req, res) => {
     await user.save();
 
     const token = generateToken(user);
-    await sendVerificationEmail(user.email, token);
+
+    // ❗Optional: disable email if causing issue
+    // await sendVerificationEmail(user.email, token);
 
     res.status(201).json({
-      message: "User registered successfully. Check your email for verification.",
+      message: "User registered successfully",
       token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
-    console.error("Signup error:", err.message);
+    console.error("Signup error:", err);
     res.status(500).json({ error: "Server error during signup" });
   }
 };
@@ -53,7 +55,6 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
     if (!email || !password)
       return res.status(400).json({ error: "Email and password are required" });
 
@@ -64,13 +65,14 @@ exports.login = async (req, res) => {
     if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
     const token = generateToken(user);
+
     res.json({
       message: "Login successful",
       token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
-    console.error("Login error:", err.message);
+    console.error("Login error:", err);
     res.status(500).json({ error: "Server error during login" });
   }
 };
@@ -126,9 +128,7 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
-// ✅ FORGOT PASSWORD
-//const crypto = require("crypto");
-
+// ✅ REQUEST PASSWORD RESET
 exports.requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
@@ -138,7 +138,7 @@ exports.requestPasswordReset = async (req, res) => {
       return res.status(404).json({ error: "No user found with this email" });
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetTokenExpire = Date.now() + 1000 * 60 * 15; // 15 min expiry
+    const resetTokenExpire = Date.now() + 15 * 60 * 1000; // 15 min expiry
 
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpire = resetTokenExpire;
@@ -149,7 +149,7 @@ exports.requestPasswordReset = async (req, res) => {
 
     res.json({ message: "Reset password link sent to your email" });
   } catch (err) {
-    console.error("requestPasswordReset error:", err.message);
+    console.error("requestPasswordReset error:", err);
     res.status(500).json({ error: "Server error during reset request" });
   }
 };
@@ -157,7 +157,7 @@ exports.requestPasswordReset = async (req, res) => {
 // ✅ RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
-    const { token } = req.params; // ✅ FIXED
+    const { token } = req.params;
     const { newPassword } = req.body;
 
     const user = await User.findOne({
@@ -175,7 +175,7 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: "Password reset successful" });
   } catch (err) {
-    console.error("resetPassword error:", err.message);
+    console.error("resetPassword error:", err);
     res.status(500).json({ error: "Server error during password reset" });
   }
 };

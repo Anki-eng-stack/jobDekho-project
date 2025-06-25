@@ -1,16 +1,11 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const reviewSchema = new mongoose.Schema({
-  user:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  company:     { type: String, required: true },
-  title:       { type: String },
-  pros:        { type: String },
-  cons:        { type: String },
-  rating:      { type: Number, min: 1, max: 5, required: true },
-  jobRole:     { type: String },
-  yearsWorked: Number,
-  upvotes:     { type: Number, default: 0 },
-  reports:     { type: Number, default: 0 }
+  company: { type: String, required: true },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  review: { type: String },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  job: { type: mongoose.Schema.Types.ObjectId, ref: "Job", required: true } // ✅ Add this
 }, { timestamps: true });
 
-module.exports = mongoose.model('Review', reviewSchema);
+module.exports = mongoose.model("Review", reviewSchema);
