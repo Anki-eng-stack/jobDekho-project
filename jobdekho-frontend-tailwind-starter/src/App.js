@@ -1,0 +1,110 @@
+// src/App.js
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+// Components
+import Header from "./components/Header";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Pages
+import Home from "./pages/Home";
+import Login from "./pages/login";           // ← Fixed import
+import Signup from "./pages/signup";         // ← Fixed import
+import AllJobs from "./pages/AllJobs";
+import JobDetails from "./pages/JobDetails";
+import Applications from "./pages/Applications";
+import Interviews from "./pages/Interviews";
+import Reviews from "./pages/Reviews";
+import RecruiterDashboard from "./pages/RecruiterDashboard";
+import PostJob from "./pages/PostJob";
+import AdminDashboard from "./pages/AdminDashboard";
+
+// Auth flows
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import OTPRequest from "./pages/OTPRequest";
+import OTPVerify from "./pages/OTPVerify";
+
+const App = () => {
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
+      <Header />
+
+      <main className="p-6">
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<Home />} />
+          <Route path="/jobs" element={<AllJobs />} />
+          <Route path="/jobs/:id" element={<JobDetails />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+
+          {/* Password & OTP flows */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/otp-request" element={<OTPRequest />} />
+          <Route path="/otp-verify" element={<OTPVerify />} />
+
+          {/* Protected: any logged-in user */}
+          <Route
+            path="/applications"
+            element={
+              <ProtectedRoute>
+                <Applications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interviews"
+            element={
+              <ProtectedRoute>
+                <Interviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reviews"
+            element={
+              <ProtectedRoute>
+                <Reviews />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Recruiter-only */}
+          <Route
+            path="/recruiter"
+            element={
+              <ProtectedRoute role="recruiter">
+                <RecruiterDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recruiter/post-job"
+            element={
+              <ProtectedRoute role="recruiter">
+                <PostJob />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin-only */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+    </div>
+  );
+};
+
+export default App;
