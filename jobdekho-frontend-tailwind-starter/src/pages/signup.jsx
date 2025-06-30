@@ -26,8 +26,8 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      // 👇 Post to /signup (not /auth/signup)
-      const res = await API.post("/signup", formData);
+      // ✅ Corrected endpoint
+      const res = await API.post("/auth/signup", formData);
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);
@@ -42,6 +42,7 @@ const Signup = () => {
         navigate("/applications");
       }
     } catch (err) {
+      console.error("Signup error:", err.response?.data || err.message);
       toast.error(err.response?.data?.error || "Signup failed");
     } finally {
       setLoading(false);

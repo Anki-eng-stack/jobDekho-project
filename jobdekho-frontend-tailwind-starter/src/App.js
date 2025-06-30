@@ -1,4 +1,3 @@
-// src/App.js
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -8,8 +7,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
 import Home from "./pages/Home";
-import Login from "./pages/login";           // ← Fixed import
-import Signup from "./pages/signup";         // ← Fixed import
+import Login from "./pages/login";
+import Signup from "./pages/signup";
 import AllJobs from "./pages/AllJobs";
 import JobDetails from "./pages/JobDetails";
 import Applications from "./pages/Applications";
@@ -18,6 +17,7 @@ import Reviews from "./pages/Reviews";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import PostJob from "./pages/PostJob";
 import AdminDashboard from "./pages/AdminDashboard";
+import ApplyForm from "./pages/ApplyForm";
 
 // Auth flows
 import ForgotPassword from "./pages/ForgotPassword";
@@ -32,20 +32,30 @@ const App = () => {
 
       <main className="p-6">
         <Routes>
-          {/* Public */}
+          {/* Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/jobs" element={<AllJobs />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          {/* Password & OTP flows */}
+          {/* Auth/OTP Flows */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/otp-request" element={<OTPRequest />} />
           <Route path="/otp-verify" element={<OTPVerify />} />
 
-          {/* Protected: any logged-in user */}
+          {/* Job Application Upload Route */}
+          <Route
+            path="/apply/:jobId"
+            element={
+              <ProtectedRoute role="jobseeker">
+                <ApplyForm />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected Routes (any logged-in user) */}
           <Route
             path="/applications"
             element={
@@ -71,7 +81,7 @@ const App = () => {
             }
           />
 
-          {/* Recruiter-only */}
+          {/* Recruiter-only Routes */}
           <Route
             path="/recruiter"
             element={
@@ -89,7 +99,7 @@ const App = () => {
             }
           />
 
-          {/* Admin-only */}
+          {/* Admin-only Route */}
           <Route
             path="/admin"
             element={
@@ -99,7 +109,7 @@ const App = () => {
             }
           />
 
-          {/* Fallback */}
+          {/* Fallback: 404 */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

@@ -1,12 +1,15 @@
-// src/pages/JobDetails.js
+// src/pages/JobDetails.jsx
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const JobDetails = () => {
   const { id } = useParams();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -15,6 +18,7 @@ const JobDetails = () => {
         setJob(res.data);
       } catch (err) {
         console.error("Error fetching job:", err);
+        toast.error("Job not found");
       } finally {
         setLoading(false);
       }
@@ -22,6 +26,33 @@ const JobDetails = () => {
 
     fetchJob();
   }, [id]);
+
+  const handleApply = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("You must be logged in to apply");
+      return;
+    }
+
+    setApplying(true);
+    try {
+      const res = await axios.post(
+        `http://localhost:5000/api/application/apply/${job._id}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      toast.success("Application submitted successfully!");
+      navigate("/applications");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to apply");
+    } finally {
+      setApplying(false);
+    }
+  };
 
   if (loading) return <p className="text-center text-blue-600">Loading...</p>;
   if (!job) return <p className="text-center text-red-500">Job not found</p>;
@@ -45,10 +76,11 @@ const JobDetails = () => {
       <p className="text-gray-800">{job.description}</p>
 
       <button
-        onClick={() => alert("Resume upload feature coming next")}
-        className="mt-6 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+        onClick={handleApply}
+        disabled={applying}
+        className={`mt-6 bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition ${applying ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        Apply Now
+        {applying ? 'Applying...' : 'Apply Now'}
       </button>
     </div>
   );
