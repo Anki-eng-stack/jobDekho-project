@@ -3,7 +3,6 @@ const fs = require("fs");
 const Job = require("../models/Job");
 const Application = require("../models/Application");
 
-// 1. Apply to a Job
 exports.applyToJob = async (req, res) => {
   try {
     const { jobId } = req.params;
@@ -22,8 +21,6 @@ exports.applyToJob = async (req, res) => {
       return res.status(400).json({ error: "You already applied to this job" });
     }
 
-    // Log file info
-    console.log("req.files:", req.files);
     if (!req.files || !req.files.resume) {
       return res.status(400).json({ error: "Resume file is required" });
     }
@@ -31,15 +28,17 @@ exports.applyToJob = async (req, res) => {
     const file = req.files.resume;
     console.log("Temp file path:", file.tempFilePath);
 
-    // Upload to Cloudinary
+    // upload raw file (e.g. PDF) auto‑detected
     const result = await cloudinary.uploader.upload(file.tempFilePath, {
-      folder: "AnkanFolder",
+      folder: "AnkanFolder/Resumes",
       resource_type: "auto",
     });
-
     console.log("Cloudinary upload result:", result);
 
-    fs.unlink(file.tempFilePath, () => {}); // cleanup temp file
+    // cleanup temp file
+    fs.unlink(file.tempFilePath, (err) => {
+      if (err) console.warn("Failed to delete temp file:", err);
+    });
 
     const application = await Application.create({
       job: jobId,
@@ -49,7 +48,6 @@ exports.applyToJob = async (req, res) => {
     });
 
     res.status(201).json({ message: "Applied successfully", application });
-
   } catch (err) {
     console.error("❌ Apply error:", err);
     res.status(500).json({ error: "Server Error", detail: err.message });
@@ -57,7 +55,6 @@ exports.applyToJob = async (req, res) => {
 };
 
 
-// 2. Get all applications for the logged-in user
 exports.getMyApplications = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -65,6 +62,7 @@ exports.getMyApplications = async (req, res) => {
       .populate("job", "title company jobImage")
       .sort({ createdAt: -1 });
 
+    // format for frontend
     const formatted = applications.map((app) => ({
       _id: app._id,
       jobId: app.job._id,
@@ -76,11 +74,12 @@ exports.getMyApplications = async (req, res) => {
 
     res.json({ applications: formatted });
   } catch (err) {
+    console.error("❌ Fetch My Applications error:", err);
     res.status(500).json({ error: "Failed to fetch applications" });
   }
 };
 
-// 3. Recruiter: Get all applications for a job
+
 exports.getApplicationsForJob = async (req, res) => {
   try {
     const jobId = req.params.jobId;
@@ -90,6 +89,7 @@ exports.getApplicationsForJob = async (req, res) => {
 
     res.json({ applications });
   } catch (err) {
+    console.error("❌ Fetch Applications For Job error:", err);
     res.status(500).json({ error: "Failed to fetch applications" });
   }
 };

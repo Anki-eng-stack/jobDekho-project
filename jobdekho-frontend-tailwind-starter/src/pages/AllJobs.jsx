@@ -8,17 +8,15 @@ const AllJobs = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchJobs();
+    (async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/jobs");
+        setJobs(res.data);
+      } catch (err) {
+        console.error("Error fetching jobs:", err);
+      }
+    })();
   }, []);
-
-  const fetchJobs = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/jobs");
-      setJobs(res.data);
-    } catch (err) {
-      console.error("Error fetching jobs:", err);
-    }
-  };
 
   return (
     <div className="min-h-screen px-4 py-8 bg-gray-100">
@@ -35,7 +33,6 @@ const AllJobs = () => {
               key={job._id}
               className="bg-white p-5 rounded-xl shadow hover:shadow-lg transition flex flex-col"
             >
-              {/* Optional Job Image */}
               {job.jobImage?.url && (
                 <img
                   src={job.jobImage.url}
@@ -61,7 +58,7 @@ const AllJobs = () => {
                 onClick={() => navigate(`/jobs/${job._id}`)}
                 className="mt-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
               >
-                View & Apply
+                View Details
               </button>
             </div>
           ))}

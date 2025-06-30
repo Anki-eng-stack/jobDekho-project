@@ -16,7 +16,7 @@ const Applications = () => {
 
   const fetchApplications = async () => {
     try {
-      const res = await API.get("/applications/my"); // fixed endpoint
+      const res = await API.get("/application/my"); // fixed endpoint
       setApplications(res.data.applications);
     } catch (err) {
       console.error("Failed to load applications", err);
