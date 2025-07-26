@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import API from "../services/api";
+import API from "../services/api"; // Assuming this is your axios instance
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import Spinner from "../components/Spinner";
+import Spinner from "../components/Spinner"; // Assuming Spinner is a simple loading spinner component
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -26,7 +26,6 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      // ✅ Corrected endpoint
       const res = await API.post("/auth/signup", formData);
 
       localStorage.setItem("token", res.data.token);
@@ -50,61 +49,82 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-96 space-y-4">
-        <h2 className="text-2xl font-bold text-center">Sign Up to JobDekho</h2>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 animate-fade-in">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-8 sm:p-10 rounded-2xl shadow-xl w-full max-w-md space-y-6 border border-gray-200 transform transition-all duration-300 hover:shadow-2xl"
+      >
+        <h2 className="text-3xl font-extrabold text-center text-blue-800 mb-6 tracking-tight">
+          Join <span className="text-indigo-600">JobDekho</span> Today!
+        </h2>
 
-        <input
-          type="text"
-          name="name"
-          placeholder="Full Name"
-          value={formData.name}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="John Doe"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 placeholder-gray-400"
+            required
+          />
+        </div>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="your.email@example.com"
+            value={formData.email}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 placeholder-gray-400"
+            required
+          />
+        </div>
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-          required
-        />
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="••••••••"
+            value={formData.password}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 placeholder-gray-400"
+            required
+          />
+        </div>
 
-        <select
-          name="role"
-          value={formData.role}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        >
-          <option value="jobseeker">Job Seeker</option>
-          <option value="recruiter">Recruiter</option>
-        </select>
+        <div>
+          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">I am a</label>
+          <select
+            id="role"
+            name="role"
+            value={formData.role}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 appearance-none bg-white pr-8" // Added appearance-none and pr for custom arrow if desired
+          >
+            <option value="jobseeker">Job Seeker</option>
+            <option value="recruiter">Recruiter</option>
+          </select>
+        </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-50 flex justify-center"
+          className="w-full bg-indigo-600 text-white p-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center font-semibold text-lg mt-8"
         >
           {loading ? <Spinner /> : "Sign Up"}
         </button>
 
-        <p className="text-center text-sm">
+        <p className="text-center text-base text-gray-600 mt-6">
           Already have an account?{" "}
-          <Link to="/login" className="text-blue-600 hover:underline">
+          <Link to="/login" className="text-blue-600 hover:underline font-semibold">
             Log in
           </Link>
         </p>

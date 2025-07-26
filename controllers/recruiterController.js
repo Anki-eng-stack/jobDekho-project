@@ -6,18 +6,22 @@ exports.getRecruiterDashboard = async (req, res) => {
     const recruiterId = req.user.id;
 
     // 1. Jobs posted by recruiter
-    const jobs = await Job.find({ postedBy: recruiterId });
+    // ⭐ CRITICAL CHANGE HERE: Use the correct field name from your Job model ⭐
+    const jobs = await Job.find({ recruiter: recruiterId }); // Assuming your Job model has 'recruiter' field
 
     // 2. Reviews on those jobs
     const reviews = await Review.find({})
       .populate({
-        path: "job",
-        populate: { path: "postedBy", select: "_id" }
+        path: "job", // Populate the 'job' field in the Review model
+        // ⭐ CRITICAL CHANGE HERE (Nested Populate): Ensure 'job' refers to the Job model,
+        // and then populate the correct recruiter field within the Job model.
+        populate: { path: "recruiter", select: "_id" } // Assuming Job model uses 'recruiter'
       });
 
     // Filter only reviews for jobs posted by current recruiter
     const myReviews = reviews.filter(
-      review => review.job?.postedBy?._id.toString() === recruiterId
+      // ⭐ CRITICAL CHANGE HERE: Use the correct field name from the populated Job object ⭐
+      review => review.job?.recruiter?._id.toString() === recruiterId
     );
 
     res.json({

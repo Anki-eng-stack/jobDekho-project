@@ -20,10 +20,11 @@ const jobSchema = new mongoose.Schema(
       public_id: { type: String },
       url: { type: String }
     },
-    postedBy: {
+    // ⭐ FIX: Renamed 'postedBy' to 'recruiter' for consistency with Application & Interview models ⭐
+    recruiter: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true // Assuming a job must always be posted by a recruiter
     }
   },
   { timestamps: true } // auto-creates createdAt and updatedAt

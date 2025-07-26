@@ -18,6 +18,9 @@ import RecruiterDashboard from "./pages/RecruiterDashboard";
 import PostJob from "./pages/PostJob";
 import AdminDashboard from "./pages/AdminDashboard";
 import ApplyForm from "./pages/ApplyForm";
+import ScheduleInterview from "./pages/ScheduleInterview";
+import JobApplicantsList from "./pages/JobApplicantsList"; // ⭐ NEW IMPORT ⭐
+import EditInterview from "./pages/EditInterview";       // ⭐ NEW IMPORT ⭐
 
 // Auth flows
 import ForgotPassword from "./pages/ForgotPassword";
@@ -95,6 +98,33 @@ const App = () => {
             element={
               <ProtectedRoute role="recruiter">
                 <PostJob />
+              </ProtectedRoute>
+            }
+          />
+          {/* Route for Job Applicants List */}
+          <Route
+            path="/recruiter/jobs/:jobId/applicants" // ⭐ NEW ROUTE ⭐
+            element={
+              <ProtectedRoute role="recruiter">
+                <JobApplicantsList />
+              </ProtectedRoute>
+            }
+          />
+          {/* Route for Scheduling a NEW Interview */}
+          <Route
+            path="/recruiter/interviews/schedule/:applicationId"
+            element={
+              <ProtectedRoute role="recruiter">
+                <ScheduleInterview />
+              </ProtectedRoute>
+            }
+          />
+          {/* Route for Editing an EXISTING Interview */}
+          <Route
+            path="/recruiter/interviews/:interviewId/edit" // ⭐ NEW ROUTE ⭐
+            element={
+              <ProtectedRoute role="recruiter">
+                <EditInterview />
               </ProtectedRoute>
             }
           />

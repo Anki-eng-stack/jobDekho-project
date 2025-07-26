@@ -58,7 +58,7 @@ app.use("/api/salaries", require("./routes/salaryRoutes"));
 app.use("/api/interviews", require("./routes/interviewRoutes"));
 app.use("/api/recruiter", require("./routes/recruiterRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/application", require("./routes/applicationRoutes"));
+app.use("/api/applications", require("./routes/applicationRoutes"));
 
 // Root
 app.get("/", (req, res) => {
