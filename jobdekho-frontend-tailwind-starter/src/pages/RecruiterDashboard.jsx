@@ -1,36 +1,49 @@
 import React, { useEffect, useState } from "react";
-import API from "../services/api";
+import API from "../services/api"; // Assuming this is your axios instance setup with base URL and token
 import { Link } from "react-router-dom";
-import { toast } from "react-toastify"; // For displaying notifications
+import { toast } from "react-toastify";
 import Spinner from "../components/Spinner"; // Assuming you have a Spinner component
 import {
-  BriefcaseBusiness, // For overall dashboard title
-  PlusCircle, // For Post New Job button
-  Building2, // For company name
-  Users, // For applicants count
-  Megaphone, // For no jobs posted yet
-  MapPin, // For job location
-  IndianRupee, // For salary
+  BriefcaseBusiness,
+  PlusCircle,
+  Building2,
+  Users,
+  Megaphone,
+  MapPin,
+  IndianRupee,
+  Loader2 // Added Loader2 for a consistent spinner icon
 } from "lucide-react";
 
 const RecruiterDashboard = () => {
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // Added error state for better error handling display
 
   useEffect(() => {
     const fetchMyJobs = async () => {
+      setLoading(true);
+      setError(null); // Clear previous errors
       try {
-        // Ensure your backend endpoint /recruiter/jobs populates applications
-        // or provides an applicantsCount for each job.
-        // Example: If applications are populated:
-        // const jobs = await Job.find({ recruiter: recruiterId }).populate('applications');
-        // If your backend only sends job data, you might need a separate call
-        // or update your backend to include applicant counts.
-        const res = await API.get("/recruiter/jobs");
-        setJobs(res.data.jobsPosted || []); // Use res.data.jobsPosted as per your controller
+        // ⭐ DEBUG LOGS: Log before API call ⭐
+        console.log("RecruiterDashboard - Fetching jobs...");
+        
+        // Ensure your backend endpoint /recruiter/jobs (which should map to getMyJobs)
+        // returns an array of job objects, potentially with applications populated or applicantsCount.
+        const res = await API.get("/jobs/my-jobs"); // Corrected endpoint as per jobRoutes.js
+        
+        // ⭐ DEBUG LOGS: Log API response data ⭐
+        console.log("RecruiterDashboard - API Response Data:", res.data);
+        
+        // Check if res.data.jobsPosted exists and is an array, otherwise default to empty
+        setJobs(res.data.jobsPosted || []); 
+        
+        // ⭐ DEBUG LOGS: Log state after setting jobs ⭐
+        console.log("RecruiterDashboard - Jobs state after update:", res.data.jobsPosted || []);
+
         toast.success("Your posted jobs loaded successfully!");
       } catch (err) {
-        console.error("Failed to fetch recruiter jobs", err.response?.data || err.message);
+        console.error("RecruiterDashboard - Failed to fetch recruiter jobs:", err.response?.data || err.message);
+        setError(err.response?.data?.error || "Failed to load your jobs. Please try again.");
         toast.error(err.response?.data?.error || "Failed to load your jobs. Please try again.");
       } finally {
         setLoading(false); // End loading regardless of success/failure
@@ -38,6 +51,11 @@ const RecruiterDashboard = () => {
     };
     fetchMyJobs();
   }, []); // Empty dependency array means this runs once on component mount
+
+  // ⭐ DEBUG LOGS: Log current state before render ⭐
+  console.log("RecruiterDashboard - Current jobs state in render:", jobs);
+  console.log("RecruiterDashboard - Is loading:", loading);
+  console.log("RecruiterDashboard - Has error:", error);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4 sm:px-6 lg:px-8 animate-fade-in">
@@ -58,8 +76,21 @@ const RecruiterDashboard = () => {
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            {/* Simple Tailwind CSS spinner */}
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div>
+            {/* Using Loader2 icon for consistency */}
+            <Loader2 className="animate-spin h-16 w-16 text-indigo-500" />
+            <p className="ml-4 text-xl font-medium text-gray-700">Loading your jobs...</p>
+          </div>
+        ) : error ? ( // Display error message if there's an error
+          <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg mt-20 max-w-lg mx-auto border border-gray-200">
+            <Megaphone className="w-16 h-16 text-red-400 mb-6" />
+            <p className="text-xl font-medium text-gray-700 mb-2 text-center">Error Loading Jobs</p>
+            <p className="text-md text-gray-500 text-center mb-6">{error}</p>
+            <button
+              onClick={() => window.location.reload()} // Simple reload to re-attempt fetch
+              className="bg-red-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-red-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
+            >
+              Try Again
+            </button>
           </div>
         ) : jobs.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg mt-20 max-w-lg mx-auto border border-gray-200">
@@ -106,7 +137,6 @@ const RecruiterDashboard = () => {
                 </p>
 
                 {/* Add a link to view applicants for this job */}
-                {/* This route assumes you'll create a JobApplicantsList component for /recruiter/jobs/:jobId/applicants */}
                 <Link
                   to={`/recruiter/jobs/${job._id}/applicants`}
                   className="mt-auto bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition-all duration-300 flex items-center justify-center text-sm font-medium"

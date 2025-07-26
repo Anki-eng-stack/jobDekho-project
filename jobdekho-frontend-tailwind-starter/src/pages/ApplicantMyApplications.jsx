@@ -1,82 +1,65 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Spinner from "../components/Spinner";
-
+import { Link, useNavigate } from "react-router-dom";
 import {
-  BriefcaseBusiness,
-  UserRound,
-  Mail,
-  CheckCircle,
-  CalendarDays,
-  Video,
-  MapPin,
-  Edit,
-  PlusCircle,
-  Loader2,
-  FileText,
-  Hourglass,
-  XCircle,
-  ClipboardCheck,
-  CalendarCheck2,
-  NotebookPen,
+  FileText, BriefcaseBusiness, CalendarDays, Video, MapPin, Loader2, Hourglass, CheckCircle, XCircle, ClipboardCheck, CalendarCheck2, NotebookPen
 } from "lucide-react";
 
-const JobApplicantsList = () => {
-  const { jobId } = useParams();
-  const navigate = useNavigate();
-  const [jobTitle, setJobTitle] = useState("Job Applicants");
-  const [applicants, setApplicants] = useState([]);
+const ApplicantMyApplications = () => {
+  const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchApplicants = async () => {
+    const fetchMyApplications = async () => {
       setLoading(true);
       setError(null);
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/applications/job/${jobId}`,
+          "http://localhost:5000/api/applications/my-applications", // Endpoint to fetch applicant's applications
           { headers: { Authorization: `Bearer ${token}` } }
         );
         
         // ⭐ DEBUG LOGS: Check what API returns ⭐
-        console.log("JobApplicantsList - API Response Data:", res.data); 
+        console.log("ApplicantMyApplications - API Response Data:", res.data);
         
-        setApplicants(res.data.applications);
+        setApplications(res.data.applications);
         
         // ⭐ DEBUG LOGS: Check state after setting ⭐
-        console.log("JobApplicantsList - Applicants state after update:", res.data.applications);
+        console.log("ApplicantMyApplications - Applications state after update:", res.data.applications);
 
-        if (res.data.applications.length > 0 && res.data.applications[0].job?.title) {
-          setJobTitle(res.data.applications[0].job.title);
-        } else {
-          const jobRes = await axios.get(
-            `http://localhost:5000/api/jobs/${jobId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setJobTitle(jobRes.data.title);
-        }
-
-        toast.success(`Loaded applicants for job.`);
+        toast.success("My applications loaded successfully!");
       } catch (err) {
-        console.error("JobApplicantsList - Failed to fetch applicants:", err.response?.data || err.message);
-        setError(err.response?.data?.error || "Failed to load applicants. Please check your permissions or if the job exists.");
-        toast.error(err.response?.data?.error || "Failed to load applicants.");
+        console.error("ApplicantMyApplications - Failed to fetch my applications:", err.response?.data || err.message);
+        setError(err.response?.data?.error || "Failed to load your applications.");
+        toast.error(err.response?.data?.error || "Failed to load applications.");
+        
+        if (err.response?.status === 401 || err.response?.status === 403) {
+            navigate("/login");
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchApplicants();
-  }, [jobId, token, navigate]);
+    if (token) {
+      fetchMyApplications();
+    } else {
+      setLoading(false);
+      setError("Please log in to view your applications.");
+      toast.info("Please log in to view your applications.");
+      navigate("/login");
+    }
+  }, [token, navigate]);
 
   // ⭐ DEBUG LOGS: Check state right before render ⭐
-  console.log("JobApplicantsList - Current applicants state in render:", applicants);
-  console.log("JobApplicantsList - Is loading:", loading);
-  console.log("JobApplicantsList - Has error:", error);
+  console.log("ApplicantMyApplications - Current applications state in render:", applications);
+  console.log("ApplicantMyApplications - Is loading:", loading);
+  console.log("ApplicantMyApplications - Has error:", error);
 
 
   const getApplicationStatusInfo = (status) => {
@@ -93,6 +76,8 @@ const JobApplicantsList = () => {
         return { text: "Interview Scheduled", class: "bg-indigo-100 text-indigo-800", icon: <CalendarDays size={16} /> };
       case "hired":
         return { text: "Hired", class: "bg-teal-100 text-teal-800", icon: <CheckCircle size={16} /> };
+      case "cancelled":
+        return { text: "Cancelled", class: "bg-gray-200 text-gray-700", icon: <XCircle size={16} /> };
       default:
         return { text: status || "Unknown", class: "bg-gray-100 text-gray-700", icon: null };
     }
@@ -102,7 +87,7 @@ const JobApplicantsList = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex justify-center items-center">
         <Loader2 className="animate-spin h-16 w-16 text-indigo-500" />
-        <p className="ml-4 text-xl font-medium text-gray-700">Loading applicants...</p>
+        <p className="ml-4 text-xl font-medium text-gray-700">Loading your applications...</p>
       </div>
     );
   }
@@ -112,14 +97,14 @@ const JobApplicantsList = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-center items-center p-8">
         <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg max-w-lg mx-auto border border-gray-200">
           <FileText className="w-16 h-16 text-red-400 mb-6" />
-          <p className="text-xl font-medium text-gray-700 mb-2">Error Loading Applicants</p>
+          <p className="text-xl font-medium text-gray-700 mb-2">Error Loading Applications</p>
           <p className="text-md text-gray-500 text-center">{error}</p>
-          <button
-            onClick={() => navigate("/recruiter/dashboard")}
+          <Link
+            to="/browse-jobs"
             className="mt-8 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
           >
-            Back to Dashboard
-          </button>
+            Browse Jobs
+          </Link>
         </div>
       </div>
     );
@@ -129,26 +114,26 @@ const JobApplicantsList = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4 sm:px-6 lg:px-8 animate-fade-in">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-4xl font-extrabold text-center text-blue-800 mb-10 tracking-tight drop-shadow-sm">
-          <BriefcaseBusiness className="inline-block w-10 h-10 mr-3 text-indigo-600" /> Applicants for "{jobTitle}"
+          <BriefcaseBusiness className="inline-block w-10 h-10 mr-3 text-indigo-600" /> My Job Applications
         </h2>
 
-        {applicants.length === 0 ? (
+        {applications.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg mt-20 max-w-lg mx-auto border border-gray-200">
-            <UserRound className="w-16 h-16 text-gray-400 mb-6" />
-            <p className="text-xl font-medium text-gray-700 mb-2 text-center">No applicants for this job yet.</p>
+            <FileText className="w-16 h-16 text-gray-400 mb-6" />
+            <p className="text-xl font-medium text-gray-700 mb-2 text-center">No applications found!</p>
             <p className="text-md text-gray-500 text-center mb-6">
-              Share your job posting to attract more candidates!
+              It looks like you haven't applied for any jobs yet. Start exploring opportunities!
             </p>
             <Link
-              to="/recruiter/dashboard"
+              to="/browse-jobs"
               className="bg-indigo-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
             >
-              Back to Dashboard
+              Browse Jobs
             </Link>
           </div>
         ) : (
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {applicants.map((application) => {
+            {applications.map((application) => {
               const appStatusInfo = getApplicationStatusInfo(application.status);
               return (
                 <li
@@ -156,19 +141,12 @@ const JobApplicantsList = () => {
                   className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col transform hover:-translate-y-1"
                 >
                   <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center">
-                    <UserRound className="w-6 h-6 mr-3 text-purple-600" />
-                    {application.user?.name || "N/A"}
+                    <BriefcaseBusiness className="w-6 h-6 mr-3 text-purple-600" />
+                    {application.job?.title || "Job Title N/A"}
                   </h3>
                   <p className="text-md text-gray-700 mb-1 flex items-center">
-                    <Mail className="w-5 h-5 mr-2 text-gray-500" />
-                    {application.user?.email || "N/A"}
+                    <span className="font-semibold mr-1">Company:</span> {application.job?.company || "N/A"}
                   </p>
-                  {application.marks && <p className="text-sm text-gray-600">Marks: {application.marks}</p>}
-                  {application.grade && <p className="text-sm text-gray-600">Grade: {application.grade}</p>}
-                  {application.experience && <p className="text-sm text-gray-600">Experience: {application.experience}</p>}
-                  {application.skills && application.skills.length > 0 && (
-                    <p className="text-sm text-gray-600">Skills: {application.skills.join(', ')}</p>
-                  )}
 
                   {application.resumeUrl && (
                     <a
@@ -215,20 +193,9 @@ const JobApplicantsList = () => {
                             Notes: {application.interview.notes}
                           </p>
                         )}
-                        <Link
-                          to={`/recruiter/interviews/${application.interview._id}/edit`}
-                          className="bg-yellow-500 text-white px-4 py-2 rounded-lg shadow hover:bg-yellow-600 transition-all duration-300 flex items-center justify-center text-sm font-medium mt-3"
-                        >
-                          <Edit className="w-4 h-4 mr-2" /> Edit Interview
-                        </Link>
                       </>
                     ) : (
-                      <Link
-                        to={`/recruiter/interviews/schedule/${application._id}`}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition-all duration-300 flex items-center justify-center text-sm font-medium mt-3"
-                      >
-                        <PlusCircle className="w-4 h-4 mr-2" /> Schedule Interview
-                      </Link>
+                      <p className="text-sm text-gray-600">Interview not yet scheduled.</p>
                     )}
                   </div>
                 </li>
@@ -241,4 +208,4 @@ const JobApplicantsList = () => {
   );
 };
 
-export default JobApplicantsList;
+export default ApplicantMyApplications;

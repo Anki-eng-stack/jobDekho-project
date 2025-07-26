@@ -85,13 +85,15 @@ exports.getRecruiterJobs = async (req, res) => {
         const recruiterId = req.user.id; // Get recruiter's ID from authenticated token
         console.log("Fetching jobs for recruiter ID:", recruiterId); // Log for debugging
         const jobs = await Job.find({ recruiter: recruiterId }).populate("recruiter", "name email");
-        res.json(jobs);
+        
+        // ⭐ MODIFIED LINE: Send as an object matching frontend's 'jobsPosted' expectation ⭐
+        res.json({ jobsPosted: jobs }); 
     } catch (err) {
-        console.error("❌ Fetch Recruiter Jobs error:", err.message);
-        res.status(500).json({ error: "Failed to fetch recruiter's jobs" });
+        // ⭐ MODIFIED LOG: Log the full error object for better debugging ⭐
+        console.error("❌ Fetch Recruiter Jobs error (full object):", err);
+        res.status(500).json({ error: "Failed to fetch recruiter's jobs", detail: err.message });
     }
 };
-
 // Update job (Recruiter or Admin)
 exports.updateJob = async (req, res) => {
   try {
