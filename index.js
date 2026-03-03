@@ -51,6 +51,7 @@ app.use("/api/recruiter", require("./routes/recruiterRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/applications", require("./routes/applicationRoutes"));
 app.use("/api/chat", require("./routes/chatRoutes"));
+app.use("/api/assistant", require("./routes/assistantRoutes"));
 
 app.get("/", (req, res) => {
   res.send("JobDekho API is running");

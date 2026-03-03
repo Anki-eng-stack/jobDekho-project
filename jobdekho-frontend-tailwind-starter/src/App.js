@@ -19,9 +19,10 @@ import PostJob from "./pages/PostJob";
 import AdminDashboard from "./pages/AdminDashboard";
 import ApplyForm from "./pages/ApplyForm";
 import ScheduleInterview from "./pages/ScheduleInterview";
-import JobApplicantsList from "./pages/JobApplicantsList"; // ⭐ NEW IMPORT ⭐
-import EditInterview from "./pages/EditInterview";       // ⭐ NEW IMPORT ⭐
+import JobApplicantsList from "./pages/JobApplicantsList";
+import EditInterview from "./pages/EditInterview";
 import Chat from "./pages/Chat";
+import Assistant from "./pages/Assistant";
 
 // Auth flows
 import ForgotPassword from "./pages/ForgotPassword";
@@ -36,20 +37,17 @@ const App = () => {
 
       <main className="p-6">
         <Routes>
-          {/* Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/jobs" element={<AllJobs />} />
           <Route path="/jobs/:id" element={<JobDetails />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
 
-          {/* Auth/OTP Flows */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/otp-request" element={<OTPRequest />} />
           <Route path="/otp-verify" element={<OTPVerify />} />
 
-          {/* Job Application Upload Route */}
           <Route
             path="/apply/:jobId"
             element={
@@ -59,7 +57,6 @@ const App = () => {
             }
           />
 
-          {/* Protected Routes (any logged-in user) */}
           <Route
             path="/applications"
             element={
@@ -92,8 +89,15 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/assistant"
+            element={
+              <ProtectedRoute>
+                <Assistant />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Recruiter-only Routes */}
           <Route
             path="/recruiter"
             element={
@@ -110,16 +114,14 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          {/* Route for Job Applicants List */}
           <Route
-            path="/recruiter/jobs/:jobId/applicants" // ⭐ NEW ROUTE ⭐
+            path="/recruiter/jobs/:jobId/applicants"
             element={
               <ProtectedRoute role="recruiter">
                 <JobApplicantsList />
               </ProtectedRoute>
             }
           />
-          {/* Route for Scheduling a NEW Interview */}
           <Route
             path="/recruiter/interviews/schedule/:applicationId"
             element={
@@ -128,9 +130,8 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          {/* Route for Editing an EXISTING Interview */}
           <Route
-            path="/recruiter/interviews/:interviewId/edit" // ⭐ NEW ROUTE ⭐
+            path="/recruiter/interviews/:interviewId/edit"
             element={
               <ProtectedRoute role="recruiter">
                 <EditInterview />
@@ -138,7 +139,6 @@ const App = () => {
             }
           />
 
-          {/* Admin-only Route */}
           <Route
             path="/admin"
             element={
@@ -148,7 +148,6 @@ const App = () => {
             }
           />
 
-          {/* Fallback: 404 */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

@@ -93,6 +93,17 @@ const Header = () => {
           </NavLink>
         )}
 
+        {token && (role === "jobseeker" || role === "recruiter") && (
+          <NavLink
+            to="/assistant"
+            className={({ isActive }) =>
+              `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
+            }
+          >
+            Assistant
+          </NavLink>
+        )}
+
         {token && role === "recruiter" && (
           <>
             <NavLink
