@@ -2,13 +2,18 @@ const Review = require("../models/Review");
 
 exports.createReview = async (req, res) => {
   try {
-    const { company, rating, review } = req.body;
+    const { company, rating, review, job } = req.body;
+
+    if (!job) {
+      return res.status(400).json({ error: "Job ID is required" });
+    }
 
     const newReview = await Review.create({
       company,
       rating,
       review,
-      user: req.user.id
+      user: req.user.id,
+      job
     });
 
     res.status(201).json({ message: "Review posted", newReview });

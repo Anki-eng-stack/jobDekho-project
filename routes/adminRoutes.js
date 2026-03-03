@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const {
+  getAdminDashboard,
   getAllUsers,
   deleteUser,
   getAllJobsAdmin,
@@ -8,6 +9,7 @@ const {
 
 const { protect, authorize } = require("../middleware/authMiddleware");
 
+router.get("/dashboard", protect, authorize("admin"), getAdminDashboard);
 router.get("/users", protect, authorize("admin"), getAllUsers);
 router.delete("/users/:id", protect, authorize("admin"), deleteUser);
 

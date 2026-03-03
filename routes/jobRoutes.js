@@ -1,4 +1,6 @@
 const router = require("express").Router();
+const fileUpload = require("express-fileupload");
+const path = require("path");
 const {
   createJob,
   getAllJobs,
@@ -9,6 +11,7 @@ const {
 } = require("../controllers/jobController");
 
 const { protect, authorize } = require("../middleware/authMiddleware");
+const tmpDir = path.join(__dirname, "../tmp");
 
 // Public routes (accessible without login)
 // The general "get all jobs" route
@@ -19,12 +22,31 @@ router.get("/", getAllJobs);
 router.get("/my-jobs", protect, authorize("recruiter"), getRecruiterJobs); // ⭐ FIX 2: Changed path from "/recruiter/my-jobs" to "/my-jobs" ⭐
 
 // Protected routes (require authentication)
-router.post("/", protect, authorize("recruiter", "admin"), createJob); // Create job (Recruiter/Admin)
+router.post(
+  "/",
+  protect,
+  authorize("recruiter", "admin"),
+  fileUpload({
+    useTempFiles: true,
+    tempFileDir: tmpDir,
+    createParentPath: true,
+  }),
+  createJob
+); // Create job (Recruiter/Admin)
 
 // The general "get single job by ID" route, and update/delete
 router.route("/:id")
   .get(getJobById) // Get single job by ID (for job seekers or general view)
-  .put(protect, authorize("recruiter", "admin"), updateJob) // Update job (Recruiter/Admin)
+  .put(
+    protect,
+    authorize("recruiter", "admin"),
+    fileUpload({
+      useTempFiles: true,
+      tempFileDir: tmpDir,
+      createParentPath: true,
+    }),
+    updateJob
+  ) // Update job (Recruiter/Admin)
   .delete(protect, authorize("recruiter", "admin"), deleteJob); // Delete job (Recruiter/Admin)
 
 

@@ -1,15 +1,7 @@
-const express = require("express");
-const { protect } = require("../middleware/authMiddleware");
-const {
-  createReview,
-  getAllReviews,
-  deleteReview 
-} = require("../controllers/reviewController");
+const router = require("express").Router();
+const { getRecruiterDashboard } = require("../controllers/recruiterController");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
-const router = express.Router();
-
-router.get("/", getAllReviews);
-router.post("/", protect, createReview);
-router.delete("/:id", protect, deleteReview); 
+router.get("/", protect, authorize("recruiter", "admin"), getRecruiterDashboard);
 
 module.exports = router;

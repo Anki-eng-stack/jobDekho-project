@@ -13,8 +13,29 @@ const AllJobs = () => {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/jobs");
-        setJobs(res.data);
+        const jobsRes = await axios.get("http://localhost:5000/api/jobs");
+        let availableJobs = jobsRes.data;
+
+        const token = localStorage.getItem("token");
+        if (token) {
+          try {
+            const applicationsRes = await axios.get("http://localhost:5000/api/applications/my", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const appliedJobIds = new Set(
+              (applicationsRes.data.applications || [])
+                .map((app) => app.jobId || app.job?._id)
+                .filter(Boolean)
+            );
+
+            availableJobs = jobsRes.data.filter((job) => !appliedJobIds.has(job._id));
+          } catch (applicationErr) {
+            console.warn("Failed to fetch applications for filtering jobs:", applicationErr);
+          }
+        }
+
+        setJobs(availableJobs);
       } catch (err) {
         console.error("Error fetching jobs:", err);
         toast.error("Failed to load jobs. Please try again later."); // User-friendly error

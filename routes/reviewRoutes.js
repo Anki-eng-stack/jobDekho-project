@@ -4,6 +4,6 @@ const { protect } = require("../middleware/authMiddleware");
 
 router.post("/", protect, createReview); // User required
 router.get("/", getAllReviews);  
-        // Public
+router.delete("/:id", protect, deleteReview);
 
 module.exports = router;

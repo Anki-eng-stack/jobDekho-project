@@ -21,6 +21,7 @@ import ApplyForm from "./pages/ApplyForm";
 import ScheduleInterview from "./pages/ScheduleInterview";
 import JobApplicantsList from "./pages/JobApplicantsList"; // ⭐ NEW IMPORT ⭐
 import EditInterview from "./pages/EditInterview";       // ⭐ NEW IMPORT ⭐
+import Chat from "./pages/Chat";
 
 // Auth flows
 import ForgotPassword from "./pages/ForgotPassword";
@@ -80,6 +81,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Reviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <Chat />
               </ProtectedRoute>
             }
           />

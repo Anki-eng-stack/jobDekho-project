@@ -50,7 +50,7 @@ const ScheduleInterview = () => {
       } catch (err) {
         console.error("Failed to load application details:", err.response?.data || err.message);
         toast.error(err.response?.data?.error || "Failed to load application details.");
-        navigate("/recruiter/dashboard"); // Redirect back to a general recruiter dashboard on error
+        navigate("/recruiter"); // Redirect back to recruiter dashboard on error
       } finally {
         setLoadingApp(false);
       }
@@ -130,7 +130,7 @@ const ScheduleInterview = () => {
             The application details could not be loaded. This might be due to an invalid ID or network issue.
           </p>
           <button
-            onClick={() => navigate("/recruiter/dashboard")} // Navigate to a proper recruiter dashboard route
+            onClick={() => navigate("/recruiter")} // Navigate to recruiter dashboard route
             className="mt-8 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
           >
             Back to Dashboard

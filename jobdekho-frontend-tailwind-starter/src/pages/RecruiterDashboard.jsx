@@ -1,160 +1,171 @@
-import React, { useEffect, useState } from "react";
-import API from "../services/api"; // Assuming this is your axios instance setup with base URL and token
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import Spinner from "../components/Spinner"; // Assuming you have a Spinner component
-import {
-  BriefcaseBusiness,
-  PlusCircle,
-  Building2,
-  Users,
-  Megaphone,
-  MapPin,
-  IndianRupee,
-  Loader2 // Added Loader2 for a consistent spinner icon
-} from "lucide-react";
+import { BriefcaseBusiness, Users, UserCheck, Trophy, PlusCircle, Loader2 } from "lucide-react";
+import API from "../services/api";
+
+const STATUS_LABELS = {
+  applied: "Applied",
+  shortlisted: "Shortlisted",
+  interview_scheduled: "Interview",
+  selected: "Selected",
+  rejected: "Rejected",
+  withdrawn: "Withdrawn",
+};
+
+const STATUS_COLORS = {
+  applied: "bg-yellow-500",
+  shortlisted: "bg-blue-500",
+  interview_scheduled: "bg-purple-500",
+  selected: "bg-green-500",
+  rejected: "bg-red-500",
+  withdrawn: "bg-gray-500",
+};
 
 const RecruiterDashboard = () => {
   const [jobs, setJobs] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // Added error state for better error handling display
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchMyJobs = async () => {
-      setLoading(true);
-      setError(null); // Clear previous errors
+    const loadDashboard = async () => {
       try {
-        // ⭐ DEBUG LOGS: Log before API call ⭐
-        console.log("RecruiterDashboard - Fetching jobs...");
-        
-        // Ensure your backend endpoint /recruiter/jobs (which should map to getMyJobs)
-        // returns an array of job objects, potentially with applications populated or applicantsCount.
-        const res = await API.get("/jobs/my-jobs"); // Corrected endpoint as per jobRoutes.js
-        
-        // ⭐ DEBUG LOGS: Log API response data ⭐
-        console.log("RecruiterDashboard - API Response Data:", res.data);
-        
-        // Check if res.data.jobsPosted exists and is an array, otherwise default to empty
-        setJobs(res.data.jobsPosted || []); 
-        
-        // ⭐ DEBUG LOGS: Log state after setting jobs ⭐
-        console.log("RecruiterDashboard - Jobs state after update:", res.data.jobsPosted || []);
-
-        toast.success("Your posted jobs loaded successfully!");
+        setLoading(true);
+        const res = await API.get("/recruiter");
+        setJobs(res.data.jobsPosted || []);
+        setAnalytics(res.data.analytics || null);
       } catch (err) {
-        console.error("RecruiterDashboard - Failed to fetch recruiter jobs:", err.response?.data || err.message);
-        setError(err.response?.data?.error || "Failed to load your jobs. Please try again.");
-        toast.error(err.response?.data?.error || "Failed to load your jobs. Please try again.");
+        const message = err.response?.data?.error || "Failed to load recruiter dashboard.";
+        setError(message);
+        toast.error(message);
       } finally {
-        setLoading(false); // End loading regardless of success/failure
+        setLoading(false);
       }
     };
-    fetchMyJobs();
-  }, []); // Empty dependency array means this runs once on component mount
+    loadDashboard();
+  }, []);
 
-  // ⭐ DEBUG LOGS: Log current state before render ⭐
-  console.log("RecruiterDashboard - Current jobs state in render:", jobs);
-  console.log("RecruiterDashboard - Is loading:", loading);
-  console.log("RecruiterDashboard - Has error:", error);
+  const maxStatusCount = useMemo(() => {
+    const values = Object.values(analytics?.statusBreakdown || {});
+    return values.length ? Math.max(...values, 1) : 1;
+  }, [analytics]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <div className="bg-white rounded-xl shadow-lg border p-8 max-w-md text-center">
+          <p className="text-lg font-semibold text-gray-800">Error Loading Dashboard</p>
+          <p className="text-sm text-gray-600 mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4 sm:px-6 lg:px-8 animate-fade-in">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl font-extrabold text-center text-blue-800 mb-10 tracking-tight drop-shadow-sm">
-          <BriefcaseBusiness className="inline-block w-10 h-10 mr-3 text-indigo-600" /> My Posted Jobs
-        </h2>
-
-        {/* Post New Job Button */}
-        <div className="flex justify-end mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-3xl font-bold text-blue-900">Recruiter Analytics</h1>
           <Link
             to="/recruiter/post-job"
-            className="inline-flex items-center bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 ease-in-out transform hover:-translate-y-1 font-semibold text-lg"
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
           >
-            <PlusCircle className="w-5 h-5 mr-2" /> Post New Job
+            <PlusCircle size={18} /> Post Job
           </Link>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            {/* Using Loader2 icon for consistency */}
-            <Loader2 className="animate-spin h-16 w-16 text-indigo-500" />
-            <p className="ml-4 text-xl font-medium text-gray-700">Loading your jobs...</p>
-          </div>
-        ) : error ? ( // Display error message if there's an error
-          <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg mt-20 max-w-lg mx-auto border border-gray-200">
-            <Megaphone className="w-16 h-16 text-red-400 mb-6" />
-            <p className="text-xl font-medium text-gray-700 mb-2 text-center">Error Loading Jobs</p>
-            <p className="text-md text-gray-500 text-center mb-6">{error}</p>
-            <button
-              onClick={() => window.location.reload()} // Simple reload to re-attempt fetch
-              className="bg-red-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-red-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
-            >
-              Try Again
-            </button>
-          </div>
-        ) : jobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg mt-20 max-w-lg mx-auto border border-gray-200">
-            <Megaphone className="w-16 h-16 text-indigo-400 mb-6 animate-bounce-slow" />
-            <p className="text-xl font-medium text-gray-700 mb-2 text-center">No jobs posted yet.</p>
-            <p className="text-md text-gray-500 text-center mb-6">
-              Start by posting your first job opening to attract top talent!
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white border rounded-xl p-4 shadow-sm">
+            <p className="text-sm text-gray-600">Total Jobs Posted</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1 inline-flex items-center gap-2">
+              <BriefcaseBusiness size={20} className="text-indigo-600" />
+              {analytics?.totalJobsPosted || 0}
             </p>
-            <Link
-              to="/recruiter/post-job"
-              className="bg-green-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-green-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
-            >
-              Post Your First Job Now!
-            </Link>
           </div>
-        ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {jobs.map((job) => (
-              <li
-                key={job._id}
-                className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col transform hover:-translate-y-1"
-              >
-                <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center">
-                  <BriefcaseBusiness className="w-5 h-5 mr-2 text-indigo-500" />
-                  {job.title}
-                </h3>
-                <p className="text-md text-gray-700 mb-1 flex items-center">
-                  <Building2 className="w-5 h-5 mr-2 text-gray-500" />
-                  {job.company}
-                </p>
-                <p className="text-md text-gray-600 mb-1 flex items-center">
-                  <MapPin className="w-5 h-5 mr-2 text-gray-500" />
-                  {job.location}
-                </p>
-                <p className="text-md text-gray-600 mb-4 flex items-center">
-                  <IndianRupee className="w-5 h-5 mr-2 text-gray-500" />
-                  Salary: {new Intl.NumberFormat('en-IN').format(job.salary)}/year
-                </p>
+          <div className="bg-white border rounded-xl p-4 shadow-sm">
+            <p className="text-sm text-gray-600">Total Applications</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1 inline-flex items-center gap-2">
+              <Users size={20} className="text-blue-600" />
+              {analytics?.totalApplications || 0}
+            </p>
+          </div>
+          <div className="bg-white border rounded-xl p-4 shadow-sm">
+            <p className="text-sm text-gray-600">Shortlisted Count</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1 inline-flex items-center gap-2">
+              <UserCheck size={20} className="text-purple-600" />
+              {analytics?.shortlistedCount || 0}
+            </p>
+          </div>
+          <div className="bg-white border rounded-xl p-4 shadow-sm">
+            <p className="text-sm text-gray-600">Hired Count</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1 inline-flex items-center gap-2">
+              <Trophy size={20} className="text-green-600" />
+              {analytics?.hiredCount || 0}
+            </p>
+          </div>
+        </div>
 
-                {/* Display Applicants Count - Requires backend to populate 'applications' or send 'applicantsCount' */}
-                <p className="text-md text-gray-600 mb-4 flex items-center">
-                  <Users className="w-5 h-5 mr-2 text-blue-500" />
-                  Applicants: <span className="font-semibold ml-1">{job.applicants?.length || 0}</span>
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white border rounded-xl p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Application Pipeline</h2>
+            <div className="space-y-3">
+              {Object.entries(STATUS_LABELS).map(([key, label]) => {
+                const count = analytics?.statusBreakdown?.[key] || 0;
+                const width = `${(count / maxStatusCount) * 100}%`;
+                return (
+                  <div key={key}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-700">{label}</span>
+                      <span className="font-semibold text-gray-900">{count}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${STATUS_COLORS[key]}`} style={{ width }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-                {/* Add a link to view applicants for this job */}
-                <Link
-                  to={`/recruiter/jobs/${job._id}/applicants`}
-                  className="mt-auto bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                >
-                  View Applicants
-                </Link>
-
-                {/* Link to view full job details (existing functionality) */}
-                <Link
-                  to={`/jobs/${job._id}`}
-                  className="mt-2 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg shadow hover:bg-gray-300 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                >
-                  View Job Details
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+          <div className="bg-white border rounded-xl p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Jobs</h2>
+            {jobs.length === 0 ? (
+              <p className="text-sm text-gray-600">No jobs posted yet.</p>
+            ) : (
+              <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
+                {jobs.map((job) => (
+                  <div key={job._id} className="border rounded-lg p-3">
+                    <p className="font-semibold text-gray-900">{job.title}</p>
+                    <p className="text-sm text-gray-600">{job.company}</p>
+                    <div className="mt-2 flex gap-2">
+                      <Link
+                        to={`/recruiter/jobs/${job._id}/applicants`}
+                        className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
+                      >
+                        View Applicants
+                      </Link>
+                      <Link
+                        to={`/jobs/${job._id}`}
+                        className="text-sm bg-gray-200 text-gray-800 px-3 py-1.5 rounded hover:bg-gray-300"
+                      >
+                        View Job
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

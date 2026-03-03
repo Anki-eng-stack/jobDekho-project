@@ -30,6 +30,7 @@ const Signup = () => {
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);
+      localStorage.setItem("userId", res.data.user.id);
       toast.success("Signup successful!");
 
       const role = res.data.user.role;

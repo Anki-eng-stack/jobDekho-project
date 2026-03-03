@@ -59,7 +59,7 @@ const EditInterview = () => {
       } catch (err) {
         console.error("Failed to load interview details:", err.response?.data || err.message);
         toast.error(err.response?.data?.error || "Failed to load interview details. It might not exist or you lack permission.");
-        navigate("/recruiter/dashboard"); // Redirect if failed to load
+        navigate("/recruiter"); // Redirect if failed to load
       } finally {
         setLoadingInitial(false);
       }
@@ -99,7 +99,7 @@ const EditInterview = () => {
       if (jobId) {
         navigate(`/recruiter/jobs/${jobId}/applicants`);
       } else {
-        navigate("/recruiter/dashboard"); // Fallback
+        navigate("/recruiter"); // Fallback
       }
     } catch (err) {
       console.error("Failed to update interview:", err.response?.data || err.message);
@@ -130,7 +130,7 @@ const EditInterview = () => {
             The interview details could not be loaded.
           </p>
           <button
-            onClick={() => navigate("/recruiter/dashboard")}
+            onClick={() => navigate("/recruiter")}
             className="mt-8 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
           >
             Back to Dashboard

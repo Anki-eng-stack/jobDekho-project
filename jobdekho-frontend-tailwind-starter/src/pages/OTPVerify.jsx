@@ -33,6 +33,7 @@ export default function OTPVerify() {
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);
+      localStorage.setItem("userId", res.data.user.id);
 
       toast.success("OTP verified — you're logged in!");
       localStorage.removeItem("otpEmail"); // Clean up stored email after successful verification

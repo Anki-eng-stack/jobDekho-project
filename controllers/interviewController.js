@@ -1,80 +1,156 @@
 const Interview = require("../models/Interview");
 const Application = require("../models/Application");
-const Job = require("../models/Job"); // Needed for checking job recruiter in createInterview
+const Conversation = require("../models/Conversation");
+const Message = require("../models/Message");
+const { sendInterviewUpdateEmail } = require("../utils/sendEmail");
 
-// ✅ Recruiter schedules an interview (Manual Scheduling)
-// This endpoint is typically called by a recruiter after reviewing an application
-// It expects applicationId, date, mode, location, notes in the request body
+const normalizeStatus = (status) => {
+  const value = String(status || "").toLowerCase().trim();
+  if (value === "reviewed" || value === "under_review") return "shortlisted";
+  if (value === "hired") return "selected";
+  if (value === "cancelled") return "withdrawn";
+  return value;
+};
+
+const pushHistory = (application, status, changedBy, note = "") => {
+  const normalized = normalizeStatus(status);
+  application.statusHistory = application.statusHistory || [];
+  const last = application.statusHistory[application.statusHistory.length - 1];
+  if (last && last.status === normalized) return;
+  application.statusHistory.push({
+    status: normalized,
+    date: new Date(),
+    note,
+    changedBy: changedBy || undefined,
+  });
+};
+
+const emitStatusUpdate = (req, application) => {
+  const io = req.app.get("io");
+  if (!io || !application) return;
+
+  const payload = {
+    applicationId: application._id,
+    jobId: application.job?._id || application.job,
+    userId: application.user?._id || application.user,
+    recruiterId: application.recruiter?._id || application.recruiter || application.job?.recruiter,
+    status: normalizeStatus(application.status),
+    statusHistory: (application.statusHistory || []).map((entry) => ({
+      status: normalizeStatus(entry.status),
+      date: entry.date,
+      note: entry.note || "",
+      changedBy: entry.changedBy,
+    })),
+    updatedAt: application.updatedAt || new Date(),
+  };
+
+  if (payload.userId) io.to(`user:${payload.userId.toString()}`).emit("application:status-updated", payload);
+  if (payload.recruiterId) io.to(`user:${payload.recruiterId.toString()}`).emit("application:status-updated", payload);
+};
+
 exports.createInterview = async (req, res) => {
   try {
-    const { applicationId, date, mode, location, notes } = req.body;
-    const recruiterId = req.user.id; // Recruiter's ID from authenticated user
+    const { date, mode, location, notes } = req.body;
+    const applicationId = req.body.applicationId || req.body.application;
+    const recruiterId = req.user.id;
 
-    // Get application details to link the interview correctly and get job/applicant IDs
+    if (!applicationId) {
+      return res.status(400).json({ error: "applicationId is required" });
+    }
+
     const application = await Application.findById(applicationId).populate("job user");
     if (!application) {
       return res.status(404).json({ error: "Application not found" });
     }
 
-    // ⭐ NEW: Authorization check - Ensure the current recruiter is the one associated with the job ⭐
-    // Or if the current user is an admin
-    if (application.job.recruiter.toString() !== recruiterId && req.user.role !== 'admin') {
-        return res.status(403).json({ error: "Not authorized to schedule an interview for this job." });
+    if (application.job.recruiter.toString() !== recruiterId && req.user.role !== "admin") {
+      return res.status(403).json({ error: "Not authorized to schedule an interview for this job." });
     }
-    // ⭐ END NEW ⭐
 
-    // Create the new interview
     const interview = await Interview.create({
       application: application._id,
       job: application.job._id,
       applicant: application.user._id,
-      recruiter: recruiterId, // Assign the logged-in recruiter as the interviewer
+      recruiter: recruiterId,
       date,
       mode,
       location,
       notes,
-      jobTitle: application.job.title, // Store job title for easy retrieval
+      jobTitle: application.job.title,
     });
 
-    // Update the application status to 'interview_scheduled' and link the interview
     application.status = "interview_scheduled";
-    application.interview = interview._id; // Link the newly created interview
+    pushHistory(application, "interview_scheduled", recruiterId, "Interview scheduled");
+    application.interview = interview._id;
     await application.save();
+    emitStatusUpdate(req, application);
+
+    const conversation = await Conversation.findOneAndUpdate(
+      {
+        jobId: application.job._id,
+        recruiterId: application.job.recruiter,
+        candidateId: application.user._id,
+      },
+      {
+        $setOnInsert: {
+          jobId: application.job._id,
+          recruiterId: application.job.recruiter,
+          candidateId: application.user._id,
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    const systemText = `Interview scheduled for ${new Date(interview.date).toLocaleString()} (${interview.mode}).`;
+    const systemMessage = await Message.create({
+      conversationId: conversation._id,
+      senderId: recruiterId,
+      text: systemText,
+      seenBy: [recruiterId],
+    });
+
+    conversation.lastMessage = systemText;
+    conversation.lastMessageAt = systemMessage.createdAt;
+    await conversation.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${application.job.recruiter.toString()}`).emit("chat:new-message", {
+        message: systemMessage,
+        conversationId: conversation._id,
+      });
+      io.to(`user:${application.user._id.toString()}`).emit("chat:new-message", {
+        message: systemMessage,
+        conversationId: conversation._id,
+      });
+    }
 
     res.status(201).json({ message: "Interview scheduled successfully", interview });
   } catch (err) {
-    console.error("❌ Interview scheduling error:", err);
+    console.error("Interview scheduling error:", err);
     res.status(500).json({ error: "Failed to schedule interview", detail: err.message });
   }
 };
 
-// ✅ Get all interviews (Admin or Recruiter for their own jobs)
 exports.getAllInterviews = async (req, res) => {
   try {
-    let query = {};
-    // If the user is a recruiter, they should only see interviews related to their jobs.
-    // This assumes the recruiter ID is stored on the Job model and that we can query Interviews by Job.recruiter.
-    // A more robust solution might be to find all jobs by the recruiter, then find interviews for those jobs.
-    // For simplicity, let's assume 'recruiter' field on Interview is the actual recruiter who scheduled it.
-    if (req.user.role === 'recruiter') {
-        query.recruiter = req.user.id;
+    const query = {};
+    if (req.user.role === "recruiter") {
+      query.recruiter = req.user.id;
     }
-    // If Admin, no query filter needed.
 
-    const interviews = await Interview.find(query) // Apply the query filter
+    const interviews = await Interview.find(query)
       .populate("job", "title company")
       .populate("applicant", "name email")
       .populate("recruiter", "name email");
 
     res.json({ interviews });
   } catch (err) {
-    console.error("❌ Get all interviews error:", err);
+    console.error("Get all interviews error:", err);
     res.status(500).json({ error: "Failed to fetch interviews", detail: err.message });
   }
 };
 
-// ✅ Get single interview by ID
-// Used to fetch details of a specific interview (for edit view, or applicant view)
 exports.getInterviewById = async (req, res) => {
   try {
     const interview = await Interview.findById(req.params.id)
@@ -86,26 +162,28 @@ exports.getInterviewById = async (req, res) => {
       return res.status(404).json({ error: "Interview not found" });
     }
 
-    // ⭐ FIX: Add Authorization Check ⭐
-    // Only the recruiter who created this interview, the applicant of this interview, or an admin can view it.
-    const isAuthorizedRecruiter = interview.recruiter.toString() === req.user.id;
-    const isAuthorizedApplicant = interview.applicant.toString() === req.user.id; // If applicant needs to see their interview
+    const recruiterId = interview.recruiter?._id
+      ? interview.recruiter._id.toString()
+      : interview.recruiter.toString();
+    const applicantId = interview.applicant?._id
+      ? interview.applicant._id.toString()
+      : interview.applicant.toString();
+
+    const isAuthorizedRecruiter = recruiterId === req.user.id;
+    const isAuthorizedApplicant = applicantId === req.user.id;
     const isAdmin = req.user.role === "admin";
 
     if (!isAuthorizedRecruiter && !isAuthorizedApplicant && !isAdmin) {
       return res.status(403).json({ error: "Not authorized to view this interview" });
     }
-    // ⭐ END FIX ⭐
 
     res.json(interview);
   } catch (err) {
-    console.error("❌ Get interview by ID error:", err);
+    console.error("Get interview by ID error:", err);
     res.status(500).json({ error: "Failed to fetch interview", detail: err.message });
   }
 };
 
-// ✅ Delete an interview
-// Allows a recruiter (who scheduled it) or an admin to delete an interview
 exports.deleteInterview = async (req, res) => {
   try {
     const interview = await Interview.findById(req.params.id);
@@ -114,77 +192,133 @@ exports.deleteInterview = async (req, res) => {
       return res.status(404).json({ error: "Interview not found" });
     }
 
-    // Authorization check: Only the recruiter who created it or an admin can delete
     if (interview.recruiter.toString() !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ error: "Not authorized to delete this interview" });
     }
 
-    await interview.deleteOne(); // Use deleteOne() for Mongoose 6+
+    await interview.deleteOne();
 
-    // ⭐ Optional: Update the associated application status if interview is deleted ⭐
-    // Find the application and set its interview field to null and status to something like 'shortlisted' or 'reviewed'
     const application = await Application.findById(interview.application);
     if (application) {
-        application.interview = null;
-        // Decide what status to revert to. 'shortlisted' or 'reviewed' might be appropriate.
-        if (application.status === 'interview_scheduled') { // Only change if it was specifically scheduled
-            application.status = 'shortlisted'; // Or 'reviewed', depending on your flow
-        }
-        await application.save();
+      application.interview = null;
+      if (application.status === "interview_scheduled") {
+        application.status = "shortlisted";
+        pushHistory(application, "shortlisted", req.user.id, "Interview removed; moved back to shortlisted");
+      }
+      await application.save();
+      emitStatusUpdate(req, application);
     }
-    // ⭐ End Optional ⭐
 
     res.json({ message: "Interview deleted successfully" });
   } catch (err) {
-    console.error("❌ Delete interview error:", err);
+    console.error("Delete interview error:", err);
     res.status(500).json({ error: "Failed to delete interview", detail: err.message });
   }
 };
 
-// ✅ Get interviews scheduled for the logged-in jobseeker
-// This is for the applicant's dashboard to see their upcoming interviews
 exports.getMyInterviews = async (req, res) => {
   try {
     const interviews = await Interview.find({ applicant: req.user.id })
-      .populate("job", "title company") // Show job title and company
-      .populate("recruiter", "name email") // Show recruiter details
-      .sort({ date: 1 }); // Sort by date ascending (upcoming first)
+      .populate("job", "title company")
+      .populate("recruiter", "name email")
+      .sort({ date: 1 });
 
     res.json({ interviews });
   } catch (err) {
-    console.error("❌ Fetch My Interviews error:", err);
+    console.error("Fetch My Interviews error:", err);
     res.status(500).json({ error: "Failed to fetch interviews", detail: err.message });
   }
 };
 
-// ✅ Update an interview (e.g., reschedule, change mode/location, add notes)
-// Only the recruiter who created it or an admin can update an interview
 exports.updateInterview = async (req, res) => {
   try {
-    const interview = await Interview.findById(req.params.id);
+    const interview = await Interview.findById(req.params.id)
+      .populate("applicant", "name email")
+      .populate("job", "title");
 
     if (!interview) {
       return res.status(404).json({ error: "Interview not found" });
     }
 
-    // Authorization check
-    if (interview.recruiter.toString() !== req.user.id && req.user.role !== "admin") {
+    const recruiterId = interview.recruiter?._id
+      ? interview.recruiter._id.toString()
+      : interview.recruiter.toString();
+    if (recruiterId !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ error: "Not authorized to update this interview" });
     }
 
-    // Update fields from request body
     const { date, mode, location, notes, status } = req.body;
+    const oldDate = interview.date;
+    const oldDateIso = oldDate ? new Date(oldDate).toISOString() : "";
+    const newDateIso = date ? new Date(date).toISOString() : oldDateIso;
+    const isTimeChanged = Boolean(date) && oldDateIso !== newDateIso;
+
     if (date) interview.date = date;
     if (mode) interview.mode = mode;
     if (location) interview.location = location;
     if (notes) interview.notes = notes;
-    if (status) interview.status = status; // Allows updating status (e.g., 'completed', 'cancelled')
+    if (status) interview.status = status;
 
     await interview.save();
 
-    res.json({ message: "Interview updated successfully", interview });
+    let notificationSent = false;
+    if (isTimeChanged && interview.applicant?.email) {
+      try {
+        await sendInterviewUpdateEmail({
+          to: interview.applicant.email,
+          applicantName: interview.applicant.name,
+          jobTitle: interview.job?.title || interview.jobTitle,
+          oldDate,
+          newDate: interview.date,
+          mode: interview.mode,
+          location: interview.location,
+          notes: interview.notes,
+        });
+        notificationSent = true;
+      } catch (mailErr) {
+        console.error("Failed to send interview update notification:", mailErr.message);
+      }
+    }
+
+    if (isTimeChanged) {
+      try {
+        const conversation = await Conversation.findOne({
+          jobId: interview.job?._id || interview.job,
+          recruiterId: interview.recruiter,
+          candidateId: interview.applicant?._id || interview.applicant,
+        });
+        if (conversation) {
+          const systemText = `Interview time updated to ${new Date(interview.date).toLocaleString()}.`;
+          const systemMessage = await Message.create({
+            conversationId: conversation._id,
+            senderId: req.user.id,
+            text: systemText,
+            seenBy: [req.user.id],
+          });
+          conversation.lastMessage = systemText;
+          conversation.lastMessageAt = systemMessage.createdAt;
+          await conversation.save();
+
+          const io = req.app.get("io");
+          if (io) {
+            io.to(`user:${conversation.recruiterId.toString()}`).emit("chat:new-message", {
+              message: systemMessage,
+              conversationId: conversation._id,
+            });
+            io.to(`user:${conversation.candidateId.toString()}`).emit("chat:new-message", {
+              message: systemMessage,
+              conversationId: conversation._id,
+            });
+          }
+        }
+      } catch (systemErr) {
+        console.error("Failed to send system chat message for interview update:", systemErr.message);
+      }
+    }
+
+    res.json({ message: "Interview updated successfully", interview, notificationSent });
   } catch (err) {
-    console.error("❌ Update interview error:", err);
+    console.error("Update interview error:", err);
     res.status(500).json({ error: "Failed to update interview", detail: err.message });
   }
 };

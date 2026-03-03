@@ -1,5 +1,28 @@
 const User = require("../models/User");
 const Job = require("../models/Job");
+const Application = require("../models/Application");
+
+exports.getAdminDashboard = async (req, res) => {
+  try {
+    const [users, jobs, applications] = await Promise.all([
+      User.find().select("-password"),
+      Job.find().populate("recruiter", "name email"),
+      Application.find()
+        .populate("job", "title")
+        .sort({ createdAt: -1 }),
+    ]);
+
+    const formattedApplications = applications.map((app) => ({
+      _id: app._id,
+      jobTitle: app.job?.title || "N/A",
+      status: app.status,
+    }));
+
+    res.json({ users, jobs, applications: formattedApplications });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch admin dashboard" });
+  }
+};
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -24,7 +47,7 @@ exports.deleteUser = async (req, res) => {
 
 exports.getAllJobsAdmin = async (req, res) => {
   try {
-    const jobs = await Job.find().populate("postedBy", "name email");
+    const jobs = await Job.find().populate("recruiter", "name email");
     res.json(jobs);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch jobs" });

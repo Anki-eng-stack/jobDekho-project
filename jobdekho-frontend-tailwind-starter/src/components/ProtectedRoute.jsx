@@ -2,7 +2,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-const ProtectedRoute = ({ children, roles }) => {
+const ProtectedRoute = ({ children, roles, role }) => {
   const token = localStorage.getItem("token");
   const userRole = localStorage.getItem("role");
 
@@ -12,9 +12,10 @@ const ProtectedRoute = ({ children, roles }) => {
   }
 
   // If roles prop is provided, check if user's role is allowed
-  if (roles) {
+  const allowedRoles = roles || role;
+  if (allowedRoles) {
     // Normalize roles to an array
-    const allowed = Array.isArray(roles) ? roles : [roles];
+    const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
     if (!allowed.includes(userRole)) {
       return <Navigate to="/" replace />;
     }

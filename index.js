@@ -1,57 +1,48 @@
-// index.js (or server.js)
-
 const express = require("express");
 const dotenv = require("dotenv");
 const helmet = require("helmet");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const fileUpload = require("express-fileupload");
+const http = require("http");
+const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 
 const connectDB = require("./config/db");
 const { apiLimiter } = require("./middleware/rateLimiter");
 
-// Load .env variables
 dotenv.config();
-
-// Connect to MongoDB
 connectDB();
 
-// Initialize Express
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:5173", "http://localhost:3000"],
+    credentials: true,
+  },
+});
+app.set("io", io);
 
-// Ensure temp directory exists
 const tmpDir = path.join(__dirname, "tmp");
 if (!fs.existsSync(tmpDir)) {
-  fs.mkdirSync(tmpDir);
+  fs.mkdirSync(tmpDir, { recursive: true });
 }
 
-// Middleware
 app.use(express.json());
-app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
   })
 );
+app.use(helmet());
 app.use(cookieParser());
 
-// File upload: use a local tmp folder (cross‐platform safe)
-// app.use(
-//   fileUpload({
-//     useTempFiles: true,
-//     tempFileDir: tmpDir,
-//     createParentPath: true,
-//   })
-// );
-
-// Rate limiter on all /api routes
+app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api", apiLimiter);
 
-// Routes
-app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/jobs", require("./routes/jobRoutes"));
 app.use("/api/reviews", require("./routes/reviewRoutes"));
 app.use("/api/salaries", require("./routes/salaryRoutes"));
@@ -59,20 +50,40 @@ app.use("/api/interviews", require("./routes/interviewRoutes"));
 app.use("/api/recruiter", require("./routes/recruiterRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/applications", require("./routes/applicationRoutes"));
+app.use("/api/chat", require("./routes/chatRoutes"));
 
-// Root
 app.get("/", (req, res) => {
-  res.send("🚀 JobDekho API is running");
+  res.send("JobDekho API is running");
 });
 
-// Global error handler (optional)
 app.use((err, req, res, next) => {
-  console.error("❌ Unhandled Error:", err);
-  res.status(500).json({ error: "Server Error", detail: err.message });
+  console.error("Unhandled Error:", err);
+  res.status(500).json({
+    error: "Server Error",
+    message: err.message,
+  });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`✅ Server running on http://localhost:${PORT}`)
-);
+io.use((socket, next) => {
+  try {
+    const rawToken = socket.handshake.auth?.token || socket.handshake.query?.token;
+    if (!rawToken) return next(new Error("Unauthorized"));
+    const token = String(rawToken).replace(/^Bearer\s+/i, "");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded;
+    return next();
+  } catch (err) {
+    return next(new Error("Unauthorized"));
+  }
+});
+
+io.on("connection", (socket) => {
+  if (socket.user?.id) {
+    socket.join(`user:${socket.user.id}`);
+  }
+});
+
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

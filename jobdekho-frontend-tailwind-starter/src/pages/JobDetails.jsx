@@ -19,13 +19,30 @@ const JobDetails = () => {
   const { id } = useParams();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+  const userRole = localStorage.getItem("role");
 
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {
         const res = await axios.get(`http://localhost:5000/api/jobs/${id}`);
         setJob(res.data);
+
+        if (token) {
+          try {
+            const applicationsRes = await axios.get("http://localhost:5000/api/applications/my", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const applied = (applicationsRes.data.applications || []).some(
+              (app) => (app.jobId || app.job?._id) === id
+            );
+            setAlreadyApplied(applied);
+          } catch (appErr) {
+            console.warn("Could not verify apply status:", appErr);
+          }
+        }
       } catch (err) {
         console.error("Error fetching job details:", err);
         toast.error("Job not found or an error occurred.");
@@ -35,7 +52,7 @@ const JobDetails = () => {
       }
     };
     fetchJobDetails();
-  }, [id]);
+  }, [id, token]);
 
   if (loading) {
     return (
@@ -147,12 +164,44 @@ const JobDetails = () => {
         </div>
 
         {/* Apply Now Button */}
-        <button
-          onClick={() => navigate(`/apply/${job._id}`)}
-          className="w-full bg-indigo-600 text-white p-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 flex justify-center items-center font-semibold text-lg"
-        >
-          <Send size={20} className="mr-3" /> Apply Now
-        </button>
+        {userRole && userRole !== "jobseeker" ? (
+          <button
+            disabled
+            className="w-full bg-gray-400 text-white p-3 rounded-lg shadow-md cursor-not-allowed flex justify-center items-center font-semibold text-lg"
+          >
+            Recruiters/Admin cannot apply
+          </button>
+        ) : alreadyApplied ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              disabled
+              className="w-full bg-gray-400 text-white p-3 rounded-lg shadow-md cursor-not-allowed flex justify-center items-center font-semibold text-lg"
+            >
+              Already Applied
+            </button>
+            <button
+              onClick={() => navigate(`/chat?jobId=${job._id}&recruiterId=${job.recruiter?._id || job.recruiter}`)}
+              className="w-full bg-blue-600 text-white p-3 rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300 font-semibold text-lg"
+            >
+              Message Recruiter
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => navigate(`/apply/${job._id}`)}
+              className="w-full bg-indigo-600 text-white p-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 flex justify-center items-center font-semibold text-lg"
+            >
+              <Send size={20} className="mr-3" /> Apply Now
+            </button>
+            <button
+              onClick={() => navigate(`/chat?jobId=${job._id}&recruiterId=${job.recruiter?._id || job.recruiter}`)}
+              className="w-full bg-blue-600 text-white p-3 rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300 font-semibold text-lg"
+            >
+              Message Recruiter
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

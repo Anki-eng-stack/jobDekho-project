@@ -32,10 +32,52 @@ const applicationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      // ⭐ CONFIRMED: 'cancelled' is included in the enum list ⭐
-      enum: ["applied", "reviewed", "shortlisted", "rejected", "interview_scheduled", "hired", "cancelled"],
+      enum: [
+        "applied",
+        "under_review",
+        "reviewed",
+        "shortlisted",
+        "interview_scheduled",
+        "selected",
+        "hired",
+        "rejected",
+        "withdrawn",
+        "cancelled",
+      ],
       default: "applied",
     },
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          enum: [
+            "applied",
+            "under_review",
+            "reviewed",
+            "shortlisted",
+            "interview_scheduled",
+            "selected",
+            "hired",
+            "rejected",
+            "withdrawn",
+            "cancelled",
+          ],
+          required: true,
+        },
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+        note: {
+          type: String,
+          default: "",
+        },
+        changedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
     interview: { // Reference to the associated Interview document
       type: mongoose.Schema.Types.ObjectId,
       ref: "Interview",

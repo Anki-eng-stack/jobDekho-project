@@ -1,33 +1,87 @@
 const Job = require("../models/Job");
 const Review = require("../models/Review");
+const Application = require("../models/Application");
+
+const normalizeStatus = (status) => {
+  const value = String(status || "").toLowerCase().trim();
+  if (value === "reviewed" || value === "under_review") return "shortlisted";
+  if (value === "hired") return "selected";
+  if (value === "cancelled") return "withdrawn";
+  return value;
+};
 
 exports.getRecruiterDashboard = async (req, res) => {
   try {
     const recruiterId = req.user.id;
+    const jobs = await Job.find({ recruiter: recruiterId }).sort({ createdAt: -1 });
+    const jobIds = jobs.map((job) => job._id);
 
-    // 1. Jobs posted by recruiter
-    // ⭐ CRITICAL CHANGE HERE: Use the correct field name from your Job model ⭐
-    const jobs = await Job.find({ recruiter: recruiterId }); // Assuming your Job model has 'recruiter' field
+    const applications = await Application.find({ job: { $in: jobIds } })
+      .select("job status createdAt")
+      .lean();
 
-    // 2. Reviews on those jobs
-    const reviews = await Review.find({})
-      .populate({
-        path: "job", // Populate the 'job' field in the Review model
-        // ⭐ CRITICAL CHANGE HERE (Nested Populate): Ensure 'job' refers to the Job model,
-        // and then populate the correct recruiter field within the Job model.
-        populate: { path: "recruiter", select: "_id" } // Assuming Job model uses 'recruiter'
-      });
+    const statusBreakdown = {
+      applied: 0,
+      shortlisted: 0,
+      interview_scheduled: 0,
+      selected: 0,
+      rejected: 0,
+      withdrawn: 0,
+    };
 
-    // Filter only reviews for jobs posted by current recruiter
+    for (const application of applications) {
+      const normalized = normalizeStatus(application.status);
+      if (statusBreakdown[normalized] !== undefined) {
+        statusBreakdown[normalized] += 1;
+      }
+    }
+
+    const applicationsByJob = jobs.map((job) => {
+      const counts = {
+        applied: 0,
+        shortlisted: 0,
+        interview_scheduled: 0,
+        selected: 0,
+        rejected: 0,
+        withdrawn: 0,
+      };
+
+      for (const app of applications) {
+        if (String(app.job) !== String(job._id)) continue;
+        const normalized = normalizeStatus(app.status);
+        if (counts[normalized] !== undefined) counts[normalized] += 1;
+      }
+
+      return {
+        jobId: job._id,
+        title: job.title,
+        company: job.company,
+        total: Object.values(counts).reduce((sum, n) => sum + n, 0),
+        counts,
+      };
+    });
+
+    const reviews = await Review.find({}).populate({
+      path: "job",
+      populate: { path: "recruiter", select: "_id" },
+    });
+
     const myReviews = reviews.filter(
-      // ⭐ CRITICAL CHANGE HERE: Use the correct field name from the populated Job object ⭐
-      review => review.job?.recruiter?._id.toString() === recruiterId
+      (review) => review.job?.recruiter?._id.toString() === recruiterId
     );
 
     res.json({
       message: "Recruiter dashboard data fetched successfully",
       jobsPosted: jobs,
-      reviewsReceived: myReviews
+      reviewsReceived: myReviews,
+      analytics: {
+        totalJobsPosted: jobs.length,
+        totalApplications: applications.length,
+        shortlistedCount: statusBreakdown.shortlisted,
+        hiredCount: statusBreakdown.selected,
+        statusBreakdown,
+        applicationsByJob,
+      },
     });
   } catch (err) {
     console.error("Recruiter dashboard error:", err.message);

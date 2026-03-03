@@ -8,6 +8,7 @@ const ApplyForm = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
 
   const [form, setForm] = useState({
     name: "",
@@ -19,6 +20,23 @@ const ApplyForm = () => {
   });
   const [resumeFile, setResumeFile] = useState(null);
   const [loading, setLoading] = useState(false); // Added loading state
+
+  if (role !== "jobseeker") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200 text-center max-w-md">
+          <h2 className="text-2xl font-bold text-red-600 mb-3">Application Not Allowed</h2>
+          <p className="text-gray-700 mb-6">Recruiters and admins cannot apply for jobs.</p>
+          <button
+            onClick={() => navigate("/jobs")}
+            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 font-semibold"
+          >
+            Back to Jobs
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,11 +51,35 @@ const ApplyForm = () => {
     e.preventDefault();
     setLoading(true); // Start loading
 
+    if (role !== "jobseeker") {
+      toast.error("Only jobseekers can apply for jobs.");
+      setLoading(false);
+      navigate("/jobs");
+      return;
+    }
+
     const { name, email, marks, grade, experience, skills } = form;
     if (!name || !email || !resumeFile) {
       toast.error("Name, email, and resume are required fields.");
       setLoading(false); // Stop loading if validation fails
       return;
+    }
+
+    try {
+      const existingRes = await axios.get("http://localhost:5000/api/applications/my", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const alreadyApplied = (existingRes.data.applications || []).some(
+        (app) => (app.jobId || app.job?._id) === jobId
+      );
+      if (alreadyApplied) {
+        toast.info("You have already applied to this job.");
+        navigate("/applications");
+        setLoading(false);
+        return;
+      }
+    } catch (existingErr) {
+      console.warn("Could not check existing applications before submit:", existingErr);
     }
 
     const formData = new FormData();

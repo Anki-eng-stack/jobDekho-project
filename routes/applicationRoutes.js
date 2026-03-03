@@ -7,7 +7,9 @@ const {
   getMyApplications,
   getApplicationsForJob,
   getApplicationById,
-  cancelApplication, // ⭐ IMPORTANT: Ensure cancelApplication is imported ⭐
+  cancelApplication,
+  withdrawApplication,
+  updateApplicationStatus,
 } = require("../controllers/applicationController");
 
 const { protect, authorize } = require("../middleware/authMiddleware");
@@ -40,6 +42,7 @@ router.post(
 
 // 2. GET /api/applications/my - Get applications for the logged-in jobseeker
 router.get("/my", authorize("jobseeker"), getMyApplications);
+router.get("/my-applications", authorize("jobseeker"), getMyApplications);
 
 // 3. GET /api/applications/job/:jobId - Get all applications for a specific job (Recruiter/Admin)
 router.get(
@@ -56,12 +59,19 @@ router.get(
   getApplicationById
 );
 
-// ⭐ 5. DELETE /api/applications/cancel/:applicationId - Cancel an application (Jobseeker/Admin) ⭐
-router.delete(
-  "/cancel/:applicationId", // Matches the frontend URL: /api/applications/cancel/:applicationId
-  authorize("jobseeker", "admin"), // Allow jobseeker to cancel their own, or admin to cancel any
-  cancelApplication
+router.patch(
+  "/:applicationId/status",
+  authorize("recruiter", "admin"),
+  updateApplicationStatus
 );
+
+router.patch(
+  "/withdraw/:applicationId",
+  authorize("jobseeker", "admin"),
+  withdrawApplication
+);
+
+router.delete("/cancel/:applicationId", authorize("jobseeker", "admin"), cancelApplication);
 
 
 module.exports = router;

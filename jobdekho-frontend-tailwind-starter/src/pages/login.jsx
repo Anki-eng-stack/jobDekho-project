@@ -22,6 +22,7 @@ const Login = () => {
 
       localStorage.setItem("token", token);
       localStorage.setItem("role", user.role);
+      localStorage.setItem("userId", user.id);
 
       toast.success("Login successful!");
 

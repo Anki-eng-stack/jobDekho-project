@@ -1,28 +1,47 @@
 import React, { useEffect, useState } from "react";
-import API from "../services/api"; // Assuming this is your axios instance
+import { io } from "socket.io-client";
+import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   FileText,
   CalendarCheck,
   AlertCircle,
-  Trash2,
   ExternalLink,
-  BriefcaseBusiness, // Added for job icon
-  Building2, // Added for company icon
+  BriefcaseBusiness,
+  Building2,
+  Circle,
+  Loader2,
+  XCircle,
 } from "lucide-react";
+
+const STATUS_META = {
+  applied: { label: "Applied", className: "bg-yellow-100 text-yellow-800" },
+  shortlisted: { label: "Shortlisted", className: "bg-blue-100 text-blue-800" },
+  interview_scheduled: { label: "Interview Scheduled", className: "bg-purple-100 text-purple-800" },
+  selected: { label: "Selected", className: "bg-green-100 text-green-800" },
+  rejected: { label: "Rejected", className: "bg-red-100 text-red-800" },
+  withdrawn: { label: "Withdrawn", className: "bg-gray-200 text-gray-700" },
+};
+
+const labelForStatus = (status) => STATUS_META[status]?.label || status || "Unknown";
+const classForStatus = (status) => STATUS_META[status]?.className || "bg-gray-100 text-gray-700";
 
 const Applications = () => {
   const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const fetchApplications = async () => {
     try {
+      setLoading(true);
       const res = await API.get("/applications/my");
-      setApplications(res.data.applications);
+      setApplications(res.data.applications || []);
     } catch (err) {
       console.error("Failed to load applications", err);
       toast.error("Failed to load applications.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,37 +49,39 @@ const Applications = () => {
     fetchApplications();
   }, []);
 
-  const handleCancel = async (id) => {
-    // Implement a confirmation dialog here instead of alert/confirm
-    if (window.confirm("Are you sure you want to cancel this application? This action cannot be undone.")) {
-      try {
-        await API.delete(`/applications/cancel/${id}`);
-        toast.success("Application cancelled successfully!");
-        fetchApplications(); // Re-fetch to update the list
-      } catch (err) {
-        console.error("Failed to cancel application", err);
-        toast.error(err.response?.data?.error || "Failed to cancel application.");
-      }
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return undefined;
+
+    const socket = io("http://localhost:5000", { auth: { token } });
+    socket.on("application:status-updated", () => {
+      fetchApplications();
+    });
+
+    return () => socket.disconnect();
+  }, []);
+
+  const handleWithdraw = async (id) => {
+    if (!window.confirm("Withdraw this application?")) return;
+
+    try {
+      await API.patch(`/applications/withdraw/${id}`);
+      toast.success("Application withdrawn.");
+      fetchApplications();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to withdraw application.");
     }
   };
 
-  // Helper function for status styling
-  const getStatusClasses = (status) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "accepted":
-        return "bg-green-100 text-green-800";
-      case "rejected":
-        return "bg-red-100 text-red-800";
-      case "interview":
-        return "bg-blue-100 text-blue-800";
-      case "cancelled":
-        return "bg-gray-200 text-gray-700 line-through";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  const isWithdrawAllowed = (status) => !["selected", "rejected", "withdrawn"].includes(status);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex justify-center items-center">
+        <Loader2 className="animate-spin h-16 w-16 text-indigo-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4 sm:px-6 lg:px-8 animate-fade-in">
@@ -71,92 +92,92 @@ const Applications = () => {
 
         {applications.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg mt-20 max-w-lg mx-auto border border-gray-200">
-            <AlertCircle className="w-16 h-16 text-indigo-400 mb-6 animate-bounce-slow" />
-            <p className="text-xl font-medium text-gray-700 mb-2">No applications found!</p>
-            <p className="text-md text-gray-500 text-center">It looks like you haven’t applied for any jobs yet. Start exploring opportunities!</p>
+            <AlertCircle className="w-16 h-16 text-indigo-400 mb-6" />
+            <p className="text-xl font-medium text-gray-700 mb-2">No applications found.</p>
             <button
               onClick={() => navigate("/jobs")}
-              className="mt-8 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
+              className="mt-6 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-indigo-700 text-lg font-semibold"
             >
               Browse Jobs
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {applications.map((app) => (
               <div
                 key={app._id}
-                className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col justify-between transform hover:-translate-y-1"
+                className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex flex-col gap-4"
               >
-                {/* Job Image - Conditional Rendering */}
-                {app.job?.jobImage?.url ? (
-                  <img
-                    src={app.job.jobImage.url}
-                    alt={app.job.title || "Job Image"}
-                    className="w-full h-48 object-cover rounded-lg mb-4 shadow-sm"
-                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x200/E0E7FF/6366F1?text=No+Image"; }} // Placeholder on error
-                  />
-                ) : (
-                  <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg mb-4 text-gray-400 text-sm">
-                    No Image Available
-                  </div>
-                )}
-
-                <div className="flex-1">
-                  {/* Job Title */}
+                <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center">
                     <BriefcaseBusiness className="inline w-6 h-6 mr-2 text-indigo-500" />
                     {app.job?.title || "Untitled Job"}
                   </h3>
-
-                  {/* Company */}
                   <p className="text-md text-gray-700 mb-2 flex items-center">
                     <Building2 className="inline w-5 h-5 mr-2 text-gray-500" />
-                    <span className="font-semibold">Company:</span>{" "}
                     {app.job?.company || "N/A"}
                   </p>
-
-                  {/* Status */}
-                  <div className="mb-2">
-                    <span className="text-sm font-medium text-gray-700 mr-2">Status:</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusClasses(app.status)}`}>
-                      {app.status}
-                    </span>
-                  </div>
-
-                  {/* Date Applied */}
-                  <p className="text-sm text-gray-500 mb-3 flex items-center">
+                  <p className="text-sm text-gray-500 mb-2 flex items-center">
                     <CalendarCheck className="inline w-4 h-4 mr-2 text-gray-400" />
                     Applied on: {new Date(app.createdAt).toLocaleDateString()}
                   </p>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${classForStatus(app.status)}`}>
+                    {labelForStatus(app.status)}
+                  </span>
+                </div>
 
-                  {/* Resume Link */}
+                <div className="border rounded-lg p-3 bg-gray-50">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Application Timeline</p>
+                  <ul className="space-y-2">
+                    {(app.statusHistory || []).map((entry, idx) => (
+                      <li key={`${entry.status}-${entry.date}-${idx}`} className="flex items-start gap-2 text-sm text-gray-700">
+                        <Circle size={12} className="mt-1 text-indigo-500" />
+                        <div>
+                          <p className="font-medium">{labelForStatus(entry.status)}</p>
+                          <p className="text-xs text-gray-500">{new Date(entry.date).toLocaleString()}</p>
+                          {entry.note ? <p className="text-xs text-gray-500">{entry.note}</p> : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
                   {app.resumeUrl && (
                     <a
                       href={app.resumeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200"
+                      className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
                     >
                       <ExternalLink size={16} className="mr-1" /> View Resume
                     </a>
                   )}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <div className="mt-2 flex gap-3">
                   <button
                     onClick={() => navigate(`/jobs/${app.job?._id}`)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-blue-600 transition-all duration-300 transform hover:-translate-y-0.5 text-sm font-medium"
+                    className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium"
                   >
-                    <ExternalLink size={16} /> Job Details
+                    Job Details
                   </button>
-                  {app.status !== "cancelled" && ( // Only show cancel if not already cancelled
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/chat?jobId=${app.job?._id}&recruiterId=${app.job?.recruiter?._id || app.job?.recruiter || ""}`
+                      )
+                    }
+                    className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm font-medium"
+                  >
+                    Message Recruiter
+                  </button>
+                  {isWithdrawAllowed(app.status) && (
                     <button
-                      onClick={() => handleCancel(app._id)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-red-600 transition-all duration-300 transform hover:-translate-y-0.5 text-sm font-medium"
+                      onClick={() => handleWithdraw(app._id)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm font-medium"
                     >
-                      <Trash2 size={16} /> Cancel Application
+                      <XCircle size={16} /> Withdraw
                     </button>
                   )}
                 </div>
