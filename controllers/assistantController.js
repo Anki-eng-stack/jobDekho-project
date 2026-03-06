@@ -1,7 +1,7 @@
 const Job = require("../models/Job");
 
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
 const extractJobQuery = (message) => {
   const text = String(message || "").trim();
@@ -56,34 +56,52 @@ const findJobsFromDatabase = async (queryText) => {
     .lean();
 };
 
-const askOllama = async (message) => {
-  const prompt = [
+const askGemini = async (message) => {
+  if (!GEMINI_API_KEY) {
+    const err = new Error("GEMINI_API_KEY is missing in environment variables.");
+    err.status = 500;
+    throw err;
+  }
+
+  const systemPrompt = [
     "You are JobDekho Hiring Assistant.",
     "Help with explaining job requirements, generating interview questions, improving resumes, and drafting recruiter job descriptions.",
     "Keep responses structured, practical, and concise.",
-    "",
-    `User: ${String(message)}`,
-  ].join("\n");
+  ].join(" ");
 
-  const response = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: OLLAMA_MODEL,
-      prompt,
-      stream: false,
-    }),
-  });
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(
+      GEMINI_API_KEY
+    )}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${systemPrompt}\n\nUser: ${String(message)}` }],
+          },
+        ],
+      }),
+    }
+  );
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const reason = data?.error || `Ollama request failed with status ${response.status}`;
+    const reason =
+      data?.error?.message || `Gemini request failed with status ${response.status}`;
     const err = new Error(reason);
     err.status = response.status;
     throw err;
   }
 
-  return data?.response || "No response generated.";
+  const reply = data?.candidates?.[0]?.content?.parts
+    ?.map((part) => part?.text || "")
+    .join("")
+    .trim();
+
+  return reply || "No response generated.";
 };
 
 exports.askAssistant = async (req, res) => {
@@ -119,17 +137,16 @@ exports.askAssistant = async (req, res) => {
       });
     }
 
-    const reply = await askOllama(message);
-    return res.json({ source: "ollama", reply });
+    const reply = await askGemini(message);
+    return res.json({ source: "gemini", reply });
   } catch (error) {
     const status = error?.status || 503;
-    const detail = error?.message || "Cannot reach local Ollama service.";
+    const detail = error?.message || "Cannot reach Gemini service.";
     console.error("Assistant error:", status, detail);
     return res.status(status).json({
-      error: "Ollama unavailable",
+      error: "Gemini unavailable",
       detail:
-        detail ||
-        "Cannot reach local Ollama. Start Ollama and run: ollama run llama3 (or set OLLAMA_MODEL/OLLAMA_URL in .env).",
+        detail || "Cannot reach Gemini API. Set GEMINI_API_KEY (and optional GEMINI_MODEL) in .env.",
     });
   }
 };

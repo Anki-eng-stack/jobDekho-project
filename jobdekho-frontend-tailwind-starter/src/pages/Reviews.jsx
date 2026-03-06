@@ -1,89 +1,270 @@
 import React, { useEffect, useState } from "react";
-import API from "../services/api";
 import { toast } from "react-toastify";
-import Spinner from "../components/Spinner"; // Assuming Spinner is a simple loading spinner component
-import {
-  MessageSquare, // Icon for overall reviews page or review content
-  Star, // For ratings, if applicable (we'll keep it general for now)
-  Calendar, // For date
-  Speech, // For no reviews state
-} from "lucide-react";
+import API from "../services/api";
+import ReviewCard from "../components/ReviewCard";
+import ReviewForm from "../components/ReviewForm";
+import RatingSummary from "../components/RatingSummary";
+import ReviewFilters from "../components/ReviewFilters";
+
+const defaultFilters = {
+  role: "",
+  rating: "",
+  sort: "newest",
+  location: "",
+  employmentStatus: "",
+  recommends: "",
+};
+
+const renderStars = (value) => {
+  const safe = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
+  return "*".repeat(safe) + "-".repeat(5 - safe);
+};
 
 const Reviews = () => {
-  const [reviews, setReviews] = useState([]); // always an array
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [companyOverview, setCompanyOverview] = useState(null);
+  const [ratingSummary, setRatingSummary] = useState(null);
+  const [filters, setFilters] = useState(defaultFilters);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [aiSummary, setAiSummary] = useState([]);
+
+  const loadCompanies = async () => {
+    try {
+      const res = await API.get("/reviews");
+      const list = Array.isArray(res.data?.reviews) ? res.data.reviews : [];
+      const uniqueCompanies = [...new Set(list.map((item) => item.company).filter(Boolean))];
+      setCompanies(uniqueCompanies);
+      if (!selectedCompany && uniqueCompanies.length) {
+        setSelectedCompany(uniqueCompanies[0]);
+      }
+    } catch (err) {
+      console.error("Failed to load companies:", err);
+    }
+  };
+
+  const loadCompanyReviews = async () => {
+    if (!selectedCompany) {
+      setReviews([]);
+      setCompanyOverview(null);
+      setRatingSummary(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({ page: String(page), limit: "8" });
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== "" && value !== null && value !== undefined) params.set(key, value);
+      });
+
+      const res = await API.get(
+        `/reviews/company/${encodeURIComponent(selectedCompany)}?${params.toString()}`
+      );
+
+      setReviews(Array.isArray(res.data?.reviews) ? res.data.reviews : []);
+      setCompanyOverview(res.data?.companyOverview || null);
+      setRatingSummary(res.data?.ratingSummary || null);
+      setPagination(res.data?.pagination || { page: 1, totalPages: 1, total: 0 });
+    } catch (err) {
+      console.error("Failed to load company reviews:", err);
+      toast.error(err.response?.data?.error || "Failed to load company reviews.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAISummary = async () => {
+    if (!selectedCompany) {
+      setAiSummary([]);
+      return;
+    }
+
+    try {
+      const res = await API.get(`/reviews/company/${encodeURIComponent(selectedCompany)}/ai-summary`);
+      setAiSummary(Array.isArray(res.data?.summary) ? res.data.summary : []);
+    } catch (err) {
+      console.error("Failed to load AI summary:", err);
+      setAiSummary(["AI summary is currently unavailable."]);
+    }
+  };
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        const res = await API.get("/reviews");
-        // default to empty array if the payload isn't shaped as expected
-        const list = Array.isArray(res.data.reviews)
-          ? res.data.reviews
-          : [];
-        setReviews(list);
-        toast.success("Reviews loaded successfully!"); // Added success toast
-      } catch (err) {
-        console.error("Failed to load reviews:", err); // More detailed error logging
-        toast.error("Failed to load reviews. Please try again.");
-        setReviews([]); // fallback
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchReviews();
+    loadCompanies();
   }, []);
 
+  useEffect(() => {
+    loadCompanyReviews();
+  }, [selectedCompany, filters, page]);
+
+  useEffect(() => {
+    loadAISummary();
+  }, [selectedCompany]);
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setFilters(defaultFilters);
+    setPage(1);
+  };
+
+  const handleHelpful = async (reviewId) => {
+    try {
+      const res = await API.post(`/reviews/${reviewId}/helpful`);
+      setReviews((prev) =>
+        prev.map((item) =>
+          item._id === reviewId
+            ? {
+                ...item,
+                helpfulCount: res.data.helpfulCount,
+                userHelpful: res.data.userHelpful,
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Could not update helpful vote.");
+    }
+  };
+
+  const handleSubmitReview = async (formData) => {
+    try {
+      setSubmitting(true);
+      await API.post("/reviews", formData);
+      toast.success("Review submitted successfully.");
+
+      await loadCompanies();
+      if (formData.company) {
+        setSelectedCompany(formData.company);
+      }
+      setPage(1);
+      await loadCompanyReviews();
+      await loadAISummary();
+    } catch (err) {
+      console.error("Failed to submit review:", err);
+      toast.error(err.response?.data?.error || "Failed to submit review.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4 sm:px-6 lg:px-8 animate-fade-in">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl font-extrabold text-center text-blue-800 mb-10 tracking-tight drop-shadow-sm">
-          <MessageSquare className="inline-block w-10 h-10 mr-3 text-indigo-600" /> What People Say About Us
-        </h2>
+    <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">Company Reviews</h2>
+            <select
+              value={selectedCompany}
+              onChange={(e) => {
+                setSelectedCompany(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              {companies.length === 0 ? (
+                <option value="">No companies yet</option>
+              ) : (
+                companies.map((company) => (
+                  <option key={company} value={company}>
+                    {company}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            {/* Simple Tailwind CSS spinner */}
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div>
-          </div>
-        ) : reviews.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg mt-20 max-w-lg mx-auto border border-gray-200">
-            <Speech className="w-16 h-16 text-indigo-400 mb-6 animate-bounce-slow" />
-            <p className="text-xl font-medium text-gray-700 mb-2">No reviews published yet!</p>
-            <p className="text-md text-gray-500 text-center">
-              Be the first to share your experience with JobDekho.
-            </p>
-            {/* You can add a button here to navigate to a "Post Review" page if one exists */}
-            {/* <button className="mt-6 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold">
-              Write a Review
-            </button> */}
-          </div>
-        ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {reviews.map((review) => (
-              <li
-                key={review._id}
-                className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col transform hover:-translate-y-1"
+          {companyOverview ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[80px_1fr] md:items-center">
+              <img
+                src={companyOverview.logo || "https://placehold.co/80x80?text=Logo"}
+                alt={`${companyOverview.name} logo`}
+                className="h-20 w-20 rounded-xl border border-gray-200 object-cover"
+              />
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">{companyOverview.name}</h3>
+                <p className="mt-1 text-sm text-gray-700">
+                  {renderStars(companyOverview.averageRating)} {companyOverview.averageRating} ({companyOverview.totalReviews} Reviews)
+                </p>
+                <p className="text-sm text-gray-600">Industry: {companyOverview.industry}</p>
+                <p className="text-sm text-gray-600">Location: {companyOverview.location}</p>
+                <p className="text-sm text-gray-600">
+                  Recommend: {companyOverview.recommendPercentage || 0}% | CEO Approval: {companyOverview.ceoApprovalPercentage || 0}%
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600">Select or add a company to view reviews.</p>
+          )}
+        </section>
+
+        <RatingSummary summary={ratingSummary} />
+
+        <ReviewFilters filters={filters} onChange={handleFilterChange} onReset={handleResetFilters} />
+
+        <section className="space-y-3">
+          <h3 className="text-lg font-semibold text-gray-900">Review Cards</h3>
+          {loading ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600">Loading reviews...</div>
+          ) : reviews.length === 0 ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600">No reviews found for the selected filters.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {reviews.map((review) => (
+                <ReviewCard key={review._id} review={review} onHelpful={handleHelpful} />
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-gray-500">Total filtered reviews: {pagination.total || 0}</p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs disabled:opacity-50"
               >
-                {/* Optional: If you have a rating field, you can display stars */}
-                {/* <div className="flex items-center text-yellow-500 mb-3">
-                    {[...Array(review.rating || 0)].map((_, i) => <Star key={i} size={20} fill="currentColor" stroke="none" />)}
-                    {review.rating ? <span className="ml-2 text-gray-700 text-sm">({review.rating}/5)</span> : null}
-                </div> */}
+                Previous
+              </button>
+              <span className="text-xs text-gray-600">
+                Page {pagination.page || 1} / {pagination.totalPages || 1}
+              </span>
+              <button
+                type="button"
+                disabled={page >= (pagination.totalPages || 1)}
+                onClick={() => setPage((prev) => Math.min((pagination.totalPages || 1), prev + 1))}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </section>
 
-                <p className="text-gray-800 leading-relaxed text-base mb-4 flex-grow">
-                  <span className="font-semibold mr-2">"</span>{review.content}<span className="font-semibold ml-2">"</span>
-                </p>
-                <p className="text-sm text-gray-500 mt-auto flex items-center justify-end">
-                  <Calendar className="w-4 h-4 mr-1 text-gray-400" />
-                  Posted on {new Date(review.createdAt).toLocaleDateString("en-IN", {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                  })}
-                </p>
-              </li>
+        <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
+          <h3 className="text-lg font-semibold text-blue-900">AI Summary</h3>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-blue-900">
+            {aiSummary.map((item, idx) => (
+              <li key={`${item}-${idx}`}>{item}</li>
             ))}
           </ul>
-        )}
+        </section>
+
+        <ReviewForm
+          defaultCompany={selectedCompany}
+          submitting={submitting}
+          onSubmit={handleSubmitReview}
+        />
       </div>
     </div>
   );
