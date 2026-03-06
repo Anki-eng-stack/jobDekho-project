@@ -10,23 +10,20 @@ const Header = () => {
 
   useEffect(() => {
     let timer;
+
     const loadUnread = async () => {
       if (!token) return;
       try {
         const res = await API.get("/chat/unread-count");
         setUnreadCount(res.data.unreadCount || 0);
-      } catch (err) {
+      } catch {
         setUnreadCount(0);
       }
     };
 
     loadUnread();
-    if (token) {
-      timer = setInterval(loadUnread, 10000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
+    if (token) timer = setInterval(loadUnread, 10000);
+    return () => timer && clearInterval(timer);
   }, [token]);
 
   const handleLogout = () => {
@@ -36,144 +33,90 @@ const Header = () => {
     navigate("/");
   };
 
-  const baseLinkClass = "px-3 py-1 rounded";
-  const activeLinkClass = "bg-blue-100 text-blue-800";
-  const inactiveLinkClass = "text-blue-600 hover:bg-blue-50";
+  const navClass = ({ isActive }) =>
+    `rounded-xl px-3 py-2 text-sm font-medium transition ${
+      isActive
+        ? "bg-brand-100 text-brand-700"
+        : "text-slate-700 hover:bg-white/70 hover:text-slate-900"
+    }`;
 
   return (
-    <header className="bg-white shadow p-4 flex justify-between items-center">
-      <NavLink to="/" className="text-2xl font-bold text-blue-600">
-        JobDekho
-      </NavLink>
-
-      <nav className="flex items-center space-x-4">
-        <NavLink
-          to="/jobs"
-          className={({ isActive }) =>
-            `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-          }
-        >
-          Jobs
+    <header className="sticky top-0 z-40 border-b border-border bg-white/85 backdrop-blur">
+      <div className="jd-container flex flex-wrap items-center justify-between gap-3 py-3">
+        <NavLink to="/" className="text-xl font-extrabold tracking-tight text-brand-600">
+          JobDekho
         </NavLink>
 
-        {token && role === "jobseeker" && (
-          <>
-            <NavLink
-              to="/applications"
-              className={({ isActive }) =>
-                `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-              }
-            >
-              Applications
-            </NavLink>
-            <NavLink
-              to="/reviews"
-              className={({ isActive }) =>
-                `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-              }
-            >
-              Reviews
-            </NavLink>
-          </>
-        )}
-
-        {token && (role === "jobseeker" || role === "recruiter") && (
-          <NavLink
-            to="/chat"
-            className={({ isActive }) =>
-              `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass} relative`
-            }
-          >
-            Chat
-            {unreadCount > 0 && (
-              <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
+        <nav className="flex flex-wrap items-center gap-1">
+          <NavLink to="/jobs" className={navClass}>
+            Jobs
           </NavLink>
-        )}
 
-        {token && (role === "jobseeker" || role === "recruiter") && (
-          <NavLink
-            to="/assistant"
-            className={({ isActive }) =>
-              `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-            }
-          >
-            Assistant
-          </NavLink>
-        )}
-
-        {token && role === "recruiter" && (
-          <>
-            <NavLink
-              to="/reviews"
-              className={({ isActive }) =>
-                `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-              }
-            >
-              Reviews
-            </NavLink>
-            <NavLink
-              to="/recruiter"
-              className={({ isActive }) =>
-                `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-              }
-            >
-              My Jobs
-            </NavLink>
-            <NavLink
-              to="/recruiter/post-job"
-              className={({ isActive }) =>
-                `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-              }
-            >
-              Post Job
-            </NavLink>
-          </>
-        )}
-
-        {token && role === "admin" && (
-          <NavLink
-            to="/admin"
-            className={({ isActive }) =>
-              `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-            }
-          >
-            Admin
-          </NavLink>
-        )}
-
-        <div className="ml-4 flex items-center space-x-2">
-          {!token ? (
+          {token && role === "jobseeker" && (
             <>
-              <NavLink
-                to="/login"
-                className={({ isActive }) =>
-                  `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-                }
-              >
-                Login
+              <NavLink to="/applications" className={navClass}>
+                Applications
               </NavLink>
-              <NavLink
-                to="/signup"
-                className={({ isActive }) =>
-                  `${baseLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
-                }
-              >
-                Signup
+              <NavLink to="/reviews" className={navClass}>
+                Reviews
               </NavLink>
             </>
-          ) : (
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1 text-red-600 hover:bg-red-50 rounded"
-            >
-              Logout
-            </button>
           )}
-        </div>
-      </nav>
+
+          {token && (role === "jobseeker" || role === "recruiter") && (
+            <NavLink to="/chat" className={navClass}>
+              <span className="relative">
+                Chat
+                {unreadCount > 0 && (
+                  <span className="absolute -right-4 -top-2 min-w-5 rounded-full bg-rose-600 px-1.5 text-center text-[10px] leading-5 text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </span>
+            </NavLink>
+          )}
+
+          {token && (role === "jobseeker" || role === "recruiter") && (
+            <NavLink to="/assistant" className={navClass}>
+              Assistant
+            </NavLink>
+          )}
+
+          {token && role === "recruiter" && (
+            <>
+              <NavLink to="/recruiter" className={navClass}>
+                My Jobs
+              </NavLink>
+              <NavLink to="/recruiter/post-job" className={navClass}>
+                Post Job
+              </NavLink>
+            </>
+          )}
+
+          {token && role === "admin" && (
+            <NavLink to="/admin" className={navClass}>
+              Admin
+            </NavLink>
+          )}
+
+          <div className="ml-1 flex items-center gap-2">
+            {!token ? (
+              <>
+                <NavLink to="/login" className="jd-btn-secondary px-3 py-2">
+                  Login
+                </NavLink>
+                <NavLink to="/signup" className="jd-btn px-3 py-2">
+                  Signup
+                </NavLink>
+              </>
+            ) : (
+              <button onClick={handleLogout} className="jd-btn-secondary border-rose-200 text-rose-700">
+                Logout
+              </button>
+            )}
+          </div>
+        </nav>
+      </div>
     </header>
   );
 };

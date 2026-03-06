@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import API from "../services/api"; // Assuming this is your axios instance
+import API from "../services/api";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import Spinner from "../components/Spinner"; // Assuming Spinner is a simple loading spinner component
+import Spinner from "../components/Spinner";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -10,14 +10,14 @@ const Signup = () => {
     name: "",
     email: "",
     password: "",
-    role: "jobseeker"
+    role: "jobseeker",
   });
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -31,18 +31,13 @@ const Signup = () => {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);
       localStorage.setItem("userId", res.data.user.id);
-      toast.success("Signup successful!");
+      toast.success("Signup successful");
 
       const role = res.data.user.role;
-      if (role === "recruiter") {
-        navigate("/recruiter");
-      } else if (role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/applications");
-      }
+      if (role === "recruiter") navigate("/recruiter");
+      else if (role === "admin") navigate("/admin");
+      else navigate("/applications");
     } catch (err) {
-      console.error("Signup error:", err.response?.data || err.message);
       toast.error(err.response?.data?.error || "Signup failed");
     } finally {
       setLoading(false);
@@ -50,82 +45,84 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 animate-fade-in">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-8 sm:p-10 rounded-2xl shadow-xl w-full max-w-md space-y-6 border border-gray-200 transform transition-all duration-300 hover:shadow-2xl"
-      >
-        <h2 className="text-3xl font-extrabold text-center text-blue-800 mb-6 tracking-tight">
-          Join <span className="text-indigo-600">JobDekho</span> Today!
-        </h2>
+    <div className="mx-auto flex min-h-[78vh] max-w-md items-center">
+      <form onSubmit={handleSubmit} className="jd-card w-full space-y-5 p-7 sm:p-8">
+        <div>
+          <h2 className="jd-title text-3xl">Create Account</h2>
+          <p className="jd-subtitle mt-1">Join JobDekho to apply and track jobs.</p>
+        </div>
 
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-700">
+            Full Name
+          </label>
           <input
             type="text"
             id="name"
             name="name"
-            placeholder="John Doe"
+            placeholder="Your full name"
             value={formData.name}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 placeholder-gray-400"
+            className="jd-input"
             required
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
+            Email Address
+          </label>
           <input
             type="email"
             id="email"
             name="email"
-            placeholder="your.email@example.com"
+            placeholder="you@example.com"
             value={formData.email}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 placeholder-gray-400"
+            className="jd-input"
             required
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+            Password
+          </label>
           <input
             type="password"
             id="password"
             name="password"
-            placeholder="••••••••"
+            placeholder="********"
             value={formData.password}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 placeholder-gray-400"
+            className="jd-input"
             required
           />
         </div>
 
         <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">I am a</label>
+          <label htmlFor="role" className="mb-1 block text-sm font-medium text-slate-700">
+            I am a
+          </label>
           <select
             id="role"
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 appearance-none bg-white pr-8" // Added appearance-none and pr for custom arrow if desired
+            className="jd-select"
           >
             <option value="jobseeker">Job Seeker</option>
             <option value="recruiter">Recruiter</option>
           </select>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-indigo-600 text-white p-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center font-semibold text-lg mt-8"
-        >
+        <button type="submit" disabled={loading} className="jd-btn w-full">
           {loading ? <Spinner /> : "Sign Up"}
         </button>
 
-        <p className="text-center text-base text-gray-600 mt-6">
+        <p className="text-center text-sm text-slate-600">
           Already have an account?{" "}
-          <Link to="/login" className="text-blue-600 hover:underline font-semibold">
+          <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
             Log in
           </Link>
         </p>

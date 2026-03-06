@@ -1,4 +1,129 @@
-/* src/index.css */
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --jd-bg: #f4f7ff;
+    --jd-surface: #ffffff;
+    --jd-surface-soft: #f8faff;
+    --jd-text: #17213a;
+    --jd-text-muted: #52607c;
+    --jd-border: #d9e2f3;
+    --jd-primary: #2f5af7;
+    --jd-primary-dark: #1f44cc;
+    --jd-accent: #00a38c;
+    --jd-danger: #d92d56;
+    --jd-radius: 16px;
+    --jd-shadow: 0 10px 30px rgba(36, 59, 126, 0.08);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Manrope", sans-serif;
+    background: radial-gradient(circle at top right, #e8f0ff 0%, var(--jd-bg) 42%, #eff4ff 100%);
+    color: var(--jd-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: #101a32;
+    letter-spacing: -0.015em;
+  }
+}
+
+@layer components {
+  .jd-shell {
+    @apply min-h-screen;
+  }
+
+  .jd-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .jd-card {
+    background: var(--jd-surface);
+    border: 1px solid var(--jd-border);
+    border-radius: var(--jd-radius);
+    box-shadow: var(--jd-shadow);
+  }
+
+  .jd-card-soft {
+    background: var(--jd-surface-soft);
+    border: 1px solid var(--jd-border);
+    border-radius: var(--jd-radius);
+  }
+
+  .jd-title {
+    @apply text-2xl font-extrabold md:text-3xl;
+  }
+
+  .jd-subtitle {
+    color: var(--jd-text-muted);
+    @apply text-sm md:text-base;
+  }
+
+  .jd-input,
+  .jd-select,
+  .jd-textarea {
+    @apply w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition;
+    border-color: var(--jd-border);
+    color: var(--jd-text);
+    background: #fff;
+  }
+
+  .jd-input:focus,
+  .jd-select:focus,
+  .jd-textarea:focus {
+    border-color: var(--jd-primary);
+    box-shadow: 0 0 0 3px rgba(47, 90, 247, 0.14);
+  }
+
+  .jd-btn {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition;
+    background: var(--jd-primary);
+    color: #fff;
+  }
+
+  .jd-btn:hover {
+    background: var(--jd-primary-dark);
+  }
+
+  .jd-btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition;
+    border-color: var(--jd-border);
+    color: var(--jd-text);
+    background: #fff;
+  }
+
+  .jd-btn-secondary:hover {
+    background: #f7f9ff;
+  }
+
+  .jd-chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
+    background: #e9efff;
+    color: #2242b8;
+  }
+
+  .jd-empty {
+    @apply jd-card p-8 text-center;
+    color: var(--jd-text-muted);
+  }
+}

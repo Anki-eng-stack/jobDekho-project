@@ -3,27 +3,27 @@ import { Link } from "react-router-dom";
 
 const Home = () => {
   return (
-    <section className="flex flex-col items-center justify-center min-h-[85vh] text-center bg-gradient-to-br from-blue-50 to-indigo-100 p-6 animate-fade-in">
-      <h1 className="text-5xl font-extrabold text-blue-800 mb-5 leading-tight tracking-tight drop-shadow-lg">
-        Welcome to <span className="text-indigo-600">JobDekho</span> 👋
-      </h1>
-      <p className="text-xl text-gray-700 mb-8 max-w-2xl leading-relaxed">
-        Your journey to the perfect career starts here. Explore thousands of opportunities, apply seamlessly, and take control of your professional future.
-      </p>
+    <section className="jd-card relative overflow-hidden px-6 py-12 sm:px-10 sm:py-16">
+      <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-brand-100 blur-2xl" />
+      <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-cyan-100 blur-2xl" />
 
-      <div className="flex space-x-6">
-        <Link
-          to="/jobs"
-          className="bg-indigo-600 text-white px-8 py-3 rounded-full shadow-lg hover:bg-indigo-700 transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 text-lg font-semibold"
-        >
-          Browse Jobs
-        </Link>
-        <Link
-          to="/login"
-          className="border-2 border-indigo-600 text-indigo-700 px-8 py-3 rounded-full hover:bg-indigo-100 transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 text-lg font-semibold"
-        >
-          Login
-        </Link>
+      <div className="relative mx-auto max-w-3xl text-center">
+        <p className="jd-chip mb-5">Career Platform</p>
+        <h1 className="jd-title text-4xl sm:text-5xl">
+          Find Better Jobs Faster with <span className="text-brand-600">JobDekho</span>
+        </h1>
+        <p className="jd-subtitle mx-auto mt-4 max-w-2xl">
+          Discover verified opportunities, apply smoothly, track every step, and manage your career in one place.
+        </p>
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link to="/jobs" className="jd-btn">
+            Browse Jobs
+          </Link>
+          <Link to="/signup" className="jd-btn-secondary">
+            Create Account
+          </Link>
+        </div>
       </div>
     </section>
   );

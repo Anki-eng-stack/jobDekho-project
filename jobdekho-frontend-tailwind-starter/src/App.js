@@ -1,11 +1,9 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Components
 import Header from "./components/Header";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// Pages
 import Home from "./pages/Home";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
@@ -24,7 +22,6 @@ import EditInterview from "./pages/EditInterview";
 import Chat from "./pages/Chat";
 import Assistant from "./pages/Assistant";
 
-// Auth flows
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import OTPRequest from "./pages/OTPRequest";
@@ -32,10 +29,10 @@ import OTPVerify from "./pages/OTPVerify";
 
 const App = () => {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
+    <div className="jd-shell text-slate-800">
       <Header />
 
-      <main className="p-6">
+      <main className="jd-container py-6 md:py-8">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/jobs" element={<AllJobs />} />
