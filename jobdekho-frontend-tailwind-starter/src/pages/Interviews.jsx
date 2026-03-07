@@ -1,170 +1,272 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
-import { toast } from "react-toastify"; // For displaying notifications
+import { toast } from "react-toastify";
 import {
-  CalendarDays, // Icon for overall interviews page
-  BriefcaseBusiness, // Icon for job title
-  CalendarCheck2, // Icon for date
-  Video, // Icon for online mode
-  MapPin, // Icon for offline mode
-  Hourglass, // Icon for pending status
-  CheckCircle, // Icon for completed status
-  XCircle, // Icon for cancelled status
-  AlertCircle, // Icon for no interviews
-  UserRound, // Icon for recruiter
-  NotebookPen, // Icon for notes
-} from "lucide-react"; // Make sure to install lucide-react if you haven't: npm install lucide-react
+  CalendarDays, BriefcaseBusiness, CalendarCheck2,
+  Video, MapPin, Hourglass, CheckCircle, XCircle,
+  AlertCircle, UserRound, NotebookPen,
+} from "lucide-react";
 
 const Interviews = () => {
   const [interviews, setInterviews] = useState([]);
-  const [loading, setLoading] = useState(true); // Added loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchInterviews = async () => {
       try {
-        const res = await API.get("/interviews/my"); // This endpoint now populates 'jobTitle' and 'recruiter'
+        const res = await API.get("/interviews/my");
         setInterviews(res.data.interviews);
         toast.success("Interviews loaded successfully!");
       } catch (err) {
         console.error("Failed to load interviews", err.response?.data || err.message);
         toast.error(err.response?.data?.error || "Failed to load interviews. Please try again.");
       } finally {
-        setLoading(false); // End loading regardless of success/failure
+        setLoading(false);
       }
     };
     fetchInterviews();
   }, []);
 
-  // Helper function for status styling and icon
   const getStatusInfo = (status) => {
-    switch (status?.toLowerCase()) { // Added optional chaining for safety
-      case "scheduled":
-        return { text: "Scheduled", class: "bg-blue-100 text-blue-800", icon: <CalendarCheck2 size={16} /> };
-      case "completed":
-        return { text: "Completed", class: "bg-green-100 text-green-800", icon: <CheckCircle size={16} /> };
-      case "cancelled":
-        return { text: "Cancelled", class: "bg-red-100 text-red-800", icon: <XCircle size={16} /> };
-      case "pending": // If you decide to use a 'pending' status for interviews (e.g., initial state)
-        return { text: "Pending", class: "bg-yellow-100 text-yellow-800", icon: <Hourglass size={16} /> };
-      default:
-        return { text: status || "Unknown", class: "bg-gray-100 text-gray-700", icon: null };
+    switch (status?.toLowerCase()) {
+      case "scheduled": return { text: "Scheduled", bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe", icon: <CalendarCheck2 size={13} /> };
+      case "completed": return { text: "Completed", bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0", icon: <CheckCircle    size={13} /> };
+      case "cancelled": return { text: "Cancelled", bg: "#fff1f2", color: "#dc2626", border: "#fecaca", icon: <XCircle        size={13} /> };
+      case "pending":   return { text: "Pending",   bg: "#fffbeb", color: "#b45309", border: "#fde68a", icon: <Hourglass      size={13} /> };
+      default:          return { text: status || "Unknown", bg: "#f8fafc", color: "#64748b", border: "#e2e8f0", icon: null };
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4 sm:px-6 lg:px-8 animate-fade-in">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl font-extrabold text-center text-blue-800 mb-10 tracking-tight drop-shadow-sm">
-          <CalendarDays className="inline-block w-10 h-10 mr-3 text-indigo-600" /> My Interviews
-        </h2>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
 
+        .jd-iv { font-family:'DM Sans',sans-serif; min-height:100vh; background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 50%,#e0e7ff 100%); padding:2.5rem 1rem; }
+
+        /* Page header */
+        .jd-iv-page-header {
+          max-width:1100px; margin:0 auto 2rem;
+          background:white; border-radius:20px;
+          border:1.5px solid #ede9fe;
+          box-shadow:0 8px 32px rgba(124,58,237,0.10);
+          overflow:hidden;
+        }
+        .jd-iv-ph-inner {
+          background:linear-gradient(135deg,#7c3aed,#4f46e5);
+          padding:1.5rem 2rem; display:flex; align-items:center; gap:1rem;
+          position:relative; overflow:hidden;
+        }
+        .jd-iv-ph-inner::before { content:''; position:absolute; top:-50px; right:-50px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,0.07); }
+        .jd-iv-ph-icon { width:46px; height:46px; border-radius:13px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; z-index:1; }
+        .jd-iv-ph-title { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:800; color:white; margin:0 0 2px; z-index:1; }
+        .jd-iv-ph-sub   { font-size:0.78rem; color:#c4b5fd; margin:0; z-index:1; }
+        .jd-iv-ph-count { margin-left:auto; z-index:1; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.25); border-radius:999px; padding:0.3rem 0.9rem; font-family:'Syne',sans-serif; font-size:0.8rem; font-weight:700; color:white; }
+
+        /* Grid */
+        .jd-iv-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.25rem; }
+
+        /* Card */
+        .jd-iv-card {
+          background:white; border-radius:18px; border:1.5px solid #ede9fe;
+          box-shadow:0 4px 20px rgba(124,58,237,0.08);
+          overflow:hidden; display:flex; flex-direction:column;
+          transition:all 0.22s;
+        }
+        .jd-iv-card:hover { transform:translateY(-3px); box-shadow:0 12px 36px rgba(124,58,237,0.15); border-color:#c4b5fd; }
+
+        .jd-iv-card-header {
+          background:linear-gradient(135deg,#7c3aed,#4f46e5);
+          padding:1rem 1.25rem; display:flex; align-items:flex-start; gap:0.75rem;
+          position:relative; overflow:hidden;
+        }
+        .jd-iv-card-header::before { content:''; position:absolute; top:-30px; right:-30px; width:100px; height:100px; border-radius:50%; background:rgba(255,255,255,0.07); }
+        .jd-iv-card-header-icon { width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; z-index:1; }
+        .jd-iv-card-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:800; color:white; margin:0; z-index:1; line-height:1.3; }
+
+        .jd-iv-card-body { padding:1.1rem 1.25rem; display:flex; flex-direction:column; gap:0.6rem; flex:1; }
+
+        .jd-iv-row { display:flex; align-items:center; gap:0.6rem; font-size:0.84rem; }
+        .jd-iv-row-icon { width:28px; height:28px; border-radius:8px; background:#faf9ff; border:1.5px solid #ede9fe; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .jd-iv-row-label { font-weight:600; color:#475569; min-width:60px; font-size:0.78rem; }
+        .jd-iv-row-value { color:#1e1b4b; font-weight:500; }
+
+        .jd-iv-divider { height:1px; background:#f3f0ff; margin:0.25rem 0; }
+
+        .jd-iv-status-pill {
+          display:inline-flex; align-items:center; gap:5px;
+          padding:0.3rem 0.75rem; border-radius:999px;
+          font-size:0.75rem; font-weight:700; border:1.5px solid;
+        }
+
+        .jd-iv-notes {
+          background:#faf9ff; border:1.5px solid #ede9fe; border-radius:10px;
+          padding:0.65rem 0.875rem; font-size:0.8rem; color:#475569;
+          display:flex; align-items:flex-start; gap:0.5rem; line-height:1.55;
+          margin-top:0.25rem;
+        }
+
+        .jd-iv-card-footer { padding:0 1.25rem 1.25rem; }
+
+        .jd-iv-join-btn {
+          font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700;
+          color:white; background:linear-gradient(135deg,#7c3aed,#4f46e5);
+          border:none; border-radius:10px; padding:0.65rem 1rem;
+          width:100%; cursor:pointer; transition:all 0.2s;
+          box-shadow:0 3px 12px rgba(124,58,237,0.28);
+          display:flex; align-items:center; justify-content:center; gap:7px;
+          text-decoration:none;
+        }
+        .jd-iv-join-btn:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(124,58,237,0.4); }
+
+        .jd-iv-venue {
+          background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:10px;
+          padding:0.65rem 0.875rem; font-size:0.82rem; color:#15803d;
+          display:flex; align-items:center; gap:7px; font-weight:600;
+        }
+
+        /* Loading */
+        .jd-iv-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; gap:1rem; }
+        .jd-iv-spinner { width:40px; height:40px; border-radius:50%; border:3px solid #ede9fe; border-top-color:#7c3aed; animation:jdSpin 0.7s linear infinite; }
+
+        /* Empty */
+        .jd-iv-empty {
+          max-width:420px; margin:2rem auto; background:white;
+          border-radius:20px; border:1.5px solid #ede9fe;
+          box-shadow:0 8px 32px rgba(124,58,237,0.10);
+          padding:3rem 2rem; text-align:center;
+        }
+        .jd-iv-empty-icon { animation:jdFloat 3s ease-in-out infinite; margin-bottom:1.25rem; }
+        .jd-iv-empty-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800; color:#1e1b4b; margin:0 0 0.5rem; }
+        .jd-iv-empty-sub   { font-size:0.875rem; color:#64748b; margin:0; line-height:1.6; }
+
+        @keyframes jdSpin  { to{transform:rotate(360deg)} }
+        @keyframes jdFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+      `}</style>
+
+      <div className="jd-iv">
+
+        {/* Page Header */}
+        <div className="jd-iv-page-header">
+          <div className="jd-iv-ph-inner">
+            <div className="jd-iv-ph-icon"><CalendarDays size={20} color="white" /></div>
+            <div>
+              <p className="jd-iv-ph-title">My Interviews</p>
+              <p className="jd-iv-ph-sub">Track all your scheduled & past interviews</p>
+            </div>
+            {!loading && (
+              <span className="jd-iv-ph-count">{interviews.length} Interview{interviews.length !== 1 ? "s" : ""}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Loading */}
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            {/* Simple Tailwind CSS spinner */}
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div>
+          <div className="jd-iv-loading">
+            <div className="jd-iv-spinner" />
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"0.9rem", color:"#7c3aed", fontWeight:600 }}>Loading your interviews...</p>
           </div>
+
         ) : interviews.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg mt-20 max-w-lg mx-auto border border-gray-200">
-            <AlertCircle className="w-16 h-16 text-indigo-400 mb-6 animate-bounce-slow" />
-            <p className="text-xl font-medium text-gray-700 mb-2">No interviews scheduled yet!</p>
-            <p className="text-md text-gray-500 text-center">Keep applying for jobs, and interviews will appear here.</p>
+          <div className="jd-iv-empty">
+            <div className="jd-iv-empty-icon"><AlertCircle size={52} color="#c4b5fd" /></div>
+            <p className="jd-iv-empty-title">No Interviews Yet</p>
+            <p className="jd-iv-empty-sub">Keep applying for jobs and your interview invites will show up here.</p>
           </div>
+
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <ul className="jd-iv-grid" style={{ listStyle:"none", padding:0, margin:0 }}>
             {interviews.map((iv) => {
               const statusInfo = getStatusInfo(iv.status);
               const interviewDate = new Date(iv.date);
-              const formattedDate = interviewDate.toLocaleDateString("en-IN", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              });
-              const formattedTime = interviewDate.toLocaleTimeString("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true, // Use 12-hour format with AM/PM
-              });
+              const formattedDate = interviewDate.toLocaleDateString("en-IN", { year:"numeric", month:"long", day:"numeric" });
+              const formattedTime = interviewDate.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit", hour12:true });
 
               return (
-                <li
-                  key={iv._id}
-                  className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col transform hover:-translate-y-1"
-                >
-                  <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                    <BriefcaseBusiness className="w-6 h-6 mr-2 text-indigo-500" />
-                    {iv.jobTitle || "Untitled Job Interview"}
-                  </h3>
+                <li key={iv._id} className="jd-iv-card">
 
-                  {/* Display Recruiter Info */}
-                  {iv.recruiter && iv.recruiter.name && (
-                    <p className="text-md text-gray-700 mb-2 flex items-center">
-                      <UserRound className="w-5 h-5 mr-2 text-gray-500" />
-                      <span className="font-semibold">Recruiter:</span> {iv.recruiter.name}
-                    </p>
-                  )}
-                  {/* Optionally display recruiter email:
-                  {iv.recruiter && iv.recruiter.email && (
-                    <p className="text-sm text-gray-600 mb-2 flex items-center">
-                      <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                      {iv.recruiter.email}
-                    </p>
-                  )}
-                  */}
-
-                  <p className="text-md text-gray-700 mb-2 flex items-center">
-                    <CalendarCheck2 className="w-5 h-5 mr-2 text-gray-500" />
-                    <span className="font-semibold">Date:</span> {formattedDate} at {formattedTime}
-                  </p>
-
-                  <p className="text-md text-gray-700 mb-2 flex items-center">
-                    {iv.mode?.toLowerCase() === "online" ? ( // Use optional chaining and toLowerCase for robustness
-                      <Video className="w-5 h-5 mr-2 text-purple-600" />
-                    ) : (
-                      <MapPin className="w-5 h-5 mr-2 text-green-600" />
-                    )}
-                    <span className="font-semibold">Mode:</span> {iv.mode}
-                  </p>
-
-                  <div className="mb-4 flex items-center">
-                    <span className="font-semibold text-gray-700 text-md mr-2">Status:</span>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.class}`}>
-                      {statusInfo.icon && <span className="mr-1">{statusInfo.icon}</span>}
-                      {statusInfo.text}
-                    </span>
+                  {/* Card Header */}
+                  <div className="jd-iv-card-header">
+                    <div className="jd-iv-card-header-icon"><BriefcaseBusiness size={18} color="white" /></div>
+                    <p className="jd-iv-card-title">{iv.jobTitle || "Untitled Job Interview"}</p>
                   </div>
 
-                  {/* Display Notes with icon */}
-                  {iv.notes && (
-                    <p className="text-sm text-gray-600 mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-start">
-                      <NotebookPen className="w-4 h-4 mt-0.5 mr-2 text-gray-500 flex-shrink-0" />
-                      <span className="font-semibold flex-shrink-0 mr-1">Notes:</span> {iv.notes}
-                    </p>
+                  {/* Card Body */}
+                  <div className="jd-iv-card-body">
+
+                    {iv.recruiter?.name && (
+                      <>
+                        <div className="jd-iv-row">
+                          <div className="jd-iv-row-icon"><UserRound size={14} color="#7c3aed" /></div>
+                          <span className="jd-iv-row-label">Recruiter</span>
+                          <span className="jd-iv-row-value">{iv.recruiter.name}</span>
+                        </div>
+                        <div className="jd-iv-divider" />
+                      </>
+                    )}
+
+                    <div className="jd-iv-row">
+                      <div className="jd-iv-row-icon"><CalendarCheck2 size={14} color="#7c3aed" /></div>
+                      <span className="jd-iv-row-label">Date</span>
+                      <span className="jd-iv-row-value">{formattedDate} &middot; {formattedTime}</span>
+                    </div>
+
+                    <div className="jd-iv-divider" />
+
+                    <div className="jd-iv-row">
+                      <div className="jd-iv-row-icon">
+                        {iv.mode?.toLowerCase() === "online"
+                          ? <Video size={14} color="#7c3aed" />
+                          : <MapPin size={14} color="#16a34a" />
+                        }
+                      </div>
+                      <span className="jd-iv-row-label">Mode</span>
+                      <span className="jd-iv-row-value" style={{ textTransform:"capitalize" }}>{iv.mode}</span>
+                    </div>
+
+                    <div className="jd-iv-divider" />
+
+                    <div className="jd-iv-row">
+                      <div className="jd-iv-row-icon" style={{ background: statusInfo.bg, borderColor: statusInfo.border }}>
+                        <span style={{ color: statusInfo.color }}>{statusInfo.icon}</span>
+                      </div>
+                      <span className="jd-iv-row-label">Status</span>
+                      <span className="jd-iv-status-pill" style={{ background: statusInfo.bg, color: statusInfo.color, borderColor: statusInfo.border }}>
+                        {statusInfo.icon} {statusInfo.text}
+                      </span>
+                    </div>
+
+                    {iv.notes && (
+                      <div className="jd-iv-notes">
+                        <NotebookPen size={14} color="#a78bfa" style={{ flexShrink:0, marginTop:1 }} />
+                        <span>{iv.notes}</span>
+                      </div>
+                    )}
+
+                  </div>
+
+                  {/* Card Footer */}
+                  {iv.location && (
+                    <div className="jd-iv-card-footer">
+                      {iv.mode?.toLowerCase() === "online" ? (
+                        <a href={iv.location} target="_blank" rel="noopener noreferrer" className="jd-iv-join-btn">
+                          <Video size={15} /> Join Interview
+                        </a>
+                      ) : (
+                        <div className="jd-iv-venue">
+                          <MapPin size={15} /> {iv.location}
+                        </div>
+                      )}
+                    </div>
                   )}
 
-                  {/* Corrected: Use iv.location for the link */}
-                  {iv.location && iv.mode?.toLowerCase() === "online" && ( // Use optional chaining and toLowerCase
-                    <a
-                      href={iv.location} // ⭐ CHANGED FROM iv.interviewLink to iv.location ⭐
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 inline-flex items-center justify-center bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 text-sm font-medium"
-                    >
-                      <Video size={16} className="mr-2" /> Join Interview
-                    </a>
-                  )}
-                  {iv.location && iv.mode?.toLowerCase() === "offline" && ( // Added display for offline location
-                    <p className="mt-4 text-sm text-gray-700 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-center">
-                        <MapPin size={16} className="mr-2 text-blue-600" />
-                        <span className="font-semibold">Venue:</span> {iv.location}
-                    </p>
-                  )}
                 </li>
               );
             })}
           </ul>
         )}
       </div>
-    </div>
+    </>
   );
 };
 

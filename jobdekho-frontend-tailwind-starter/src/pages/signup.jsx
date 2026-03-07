@@ -2,37 +2,27 @@ import React, { useState } from "react";
 import API from "../services/api";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import Spinner from "../components/Spinner";
+import { User, Mail, Lock, BriefcaseBusiness, UserCheck, Eye, EyeOff } from "lucide-react";
 
 const Signup = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "jobseeker",
-  });
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ name:"", email:"", password:"", role:"jobseeker" });
+  const [loading, setLoading]   = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const res = await API.post("/auth/signup", formData);
-
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);
       localStorage.setItem("userId", res.data.user.id);
       toast.success("Signup successful");
-
       const role = res.data.user.role;
       if (role === "recruiter") navigate("/recruiter");
       else if (role === "admin") navigate("/admin");
@@ -45,89 +35,157 @@ const Signup = () => {
   };
 
   return (
-    <div className="mx-auto flex min-h-[78vh] max-w-md items-center">
-      <form onSubmit={handleSubmit} className="jd-card w-full space-y-5 p-7 sm:p-8">
-        <div>
-          <h2 className="jd-title text-3xl">Create Account</h2>
-          <p className="jd-subtitle mt-1">Join JobDekho to apply and track jobs.</p>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
+
+        .jd-su { font-family:'DM Sans',sans-serif; min-height:100vh; background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 50%,#e0e7ff 100%); display:flex; align-items:center; justify-content:center; padding:2rem 1rem; position:relative; overflow:hidden; }
+        .jd-su-blob1 { position:absolute; top:-80px; right:-80px; width:320px; height:320px; border-radius:50%; background:radial-gradient(circle,rgba(167,139,250,0.22),transparent 70%); pointer-events:none; }
+        .jd-su-blob2 { position:absolute; bottom:-100px; left:-80px; width:360px; height:360px; border-radius:50%; background:radial-gradient(circle,rgba(99,102,241,0.15),transparent 70%); pointer-events:none; }
+
+        .jd-su-card { position:relative; z-index:1; background:white; border-radius:22px; border:1.5px solid #ede9fe; width:100%; max-width:460px; box-shadow:0 20px 60px rgba(124,58,237,0.13); overflow:hidden; }
+
+        /* Header */
+        .jd-su-header { background:linear-gradient(135deg,#7c3aed,#4f46e5); padding:2rem; text-align:center; position:relative; overflow:hidden; }
+        .jd-su-header::before { content:''; position:absolute; top:-50px; right:-50px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,0.07); }
+        .jd-su-header::after  { content:''; position:absolute; bottom:-40px; left:-30px; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,0.05); }
+        .jd-su-logo  { width:56px; height:56px; border-radius:16px; background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.28); display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; position:relative; z-index:1; animation:jdFloat 3.5s ease-in-out infinite; }
+        .jd-su-title { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:900; color:white; margin:0 0 4px; z-index:1; position:relative; }
+        .jd-su-sub   { font-size:0.8rem; color:#c4b5fd; margin:0; z-index:1; position:relative; }
+
+        /* Body */
+        .jd-su-body { padding:1.75rem 2rem 2rem; display:flex; flex-direction:column; gap:1.1rem; }
+
+        .jd-section-label { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#7c3aed; display:flex; align-items:center; gap:6px; margin-bottom:0.625rem; }
+        .jd-section-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,#ede9fe,transparent); }
+
+        .jd-field-label { font-size:0.78rem; font-weight:600; color:#475569; margin-bottom:4px; display:flex; align-items:center; gap:5px; }
+
+        .jd-input-wrap { position:relative; margin-bottom:0.75rem; }
+        .jd-input-wrap:last-child { margin-bottom:0; }
+        .jd-input-icon   { position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); pointer-events:none; }
+        .jd-input-toggle { position:absolute; right:0.75rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:0; display:flex; align-items:center; color:#a78bfa; transition:color 0.2s; }
+        .jd-input-toggle:hover { color:#7c3aed; }
+
+        .jd-input, .jd-select {
+          font-family:'DM Sans',sans-serif; font-size:0.875rem; color:#1e1b4b;
+          background:#faf9ff; border:1.5px solid #ede9fe; border-radius:10px;
+          padding:0.65rem 0.875rem 0.65rem 2.5rem;
+          outline:none; transition:all 0.2s; width:100%; box-sizing:border-box;
+        }
+        .jd-input::placeholder { color:#c4b5fd; }
+        .jd-input:focus, .jd-select:focus { border-color:#7c3aed; background:white; box-shadow:0 0 0 3px rgba(124,58,237,0.1); }
+
+        /* Role toggle */
+        .jd-role-toggle { display:flex; gap:0.625rem; }
+        .jd-role-btn { flex:1; padding:0.7rem 0.5rem; border-radius:10px; border:1.5px solid #ede9fe; background:#faf9ff; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:7px; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:600; color:#64748b; }
+        .jd-role-btn.active { border-color:#7c3aed; background:#f5f3ff; color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,0.08); }
+
+        /* Submit */
+        .jd-btn-submit { font-family:'Syne',sans-serif; font-size:0.95rem; font-weight:700; color:white; background:linear-gradient(135deg,#7c3aed,#4f46e5); border:none; border-radius:12px; padding:0.875rem 1.5rem; width:100%; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 16px rgba(124,58,237,0.3); display:flex; align-items:center; justify-content:center; gap:8px; margin-top:0.25rem; }
+        .jd-btn-submit:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 22px rgba(124,58,237,0.42); }
+        .jd-btn-submit:disabled { opacity:0.6; cursor:not-allowed; }
+
+        .jd-login-text { text-align:center; font-size:0.82rem; color:#64748b; }
+        .jd-login-link { color:#7c3aed; font-weight:700; text-decoration:none; }
+        .jd-login-link:hover { text-decoration:underline; }
+
+        @keyframes jdSpin  { to{transform:rotate(360deg)} }
+        @keyframes jdFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+      `}</style>
+
+      <div className="jd-su">
+        <div className="jd-su-blob1" />
+        <div className="jd-su-blob2" />
+
+        <div className="jd-su-card">
+
+          {/* Header */}
+          <div className="jd-su-header">
+            <div className="jd-su-logo"><BriefcaseBusiness size={26} color="white" /></div>
+            <h1 className="jd-su-title">Create Account</h1>
+            <p className="jd-su-sub">Join JobDekho to apply and track jobs</p>
+          </div>
+
+          {/* Body */}
+          <div className="jd-su-body">
+            <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:"1rem" }}>
+
+              <div>
+                <p className="jd-section-label">👤 Your Details</p>
+
+                {/* Name */}
+                <label className="jd-field-label"><User size={13} color="#a78bfa" /> Full Name</label>
+                <div className="jd-input-wrap">
+                  <span className="jd-input-icon"><User size={15} color="#a78bfa" /></span>
+                  <input type="text" name="name" placeholder="Your full name"
+                    value={formData.name} onChange={handleChange} className="jd-input" required />
+                </div>
+
+                {/* Email */}
+                <label className="jd-field-label"><Mail size={13} color="#a78bfa" /> Email Address</label>
+                <div className="jd-input-wrap">
+                  <span className="jd-input-icon"><Mail size={15} color="#a78bfa" /></span>
+                  <input type="email" name="email" placeholder="you@example.com"
+                    value={formData.email} onChange={handleChange} className="jd-input" required />
+                </div>
+
+                {/* Password */}
+                <label className="jd-field-label"><Lock size={13} color="#a78bfa" /> Password</label>
+                <div className="jd-input-wrap" style={{ marginBottom:0 }}>
+                  <span className="jd-input-icon"><Lock size={15} color="#a78bfa" /></span>
+                  <input type={showPass ? "text" : "password"} name="password" placeholder="••••••••"
+                    value={formData.password} onChange={handleChange} className="jd-input" required />
+                  <button type="button" className="jd-input-toggle" onClick={() => setShowPass(p => !p)}>
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Role */}
+              <div>
+                <p className="jd-section-label">🎯 I am a</p>
+                <div className="jd-role-toggle">
+                  <button type="button"
+                    className={`jd-role-btn ${formData.role === "jobseeker" ? "active" : ""}`}
+                    onClick={() => setFormData(p => ({ ...p, role:"jobseeker" }))}>
+                    <User size={15} /> Job Seeker
+                  </button>
+                  <button type="button"
+                    className={`jd-role-btn ${formData.role === "recruiter" ? "active" : ""}`}
+                    onClick={() => setFormData(p => ({ ...p, role:"recruiter" }))}>
+                    <UserCheck size={15} /> Recruiter
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button type="submit" className="jd-btn-submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
+                      style={{ animation:"jdSpin 0.7s linear infinite" }}>
+                      <path d="M21 12a9 9 0 1 1-9-9"/>
+                    </svg>
+                    Creating Account...
+                  </>
+                ) : (
+                  <><BriefcaseBusiness size={17} /> Sign Up</>
+                )}
+              </button>
+
+            </form>
+
+            {/* Login link */}
+            <p className="jd-login-text">
+              Already have an account?{" "}
+              <Link to="/login" className="jd-login-link">Log in</Link>
+            </p>
+
+          </div>
         </div>
-
-        <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-700">
-            Full Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            placeholder="Your full name"
-            value={formData.name}
-            onChange={handleChange}
-            className="jd-input"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
-            Email Address
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            placeholder="you@example.com"
-            value={formData.email}
-            onChange={handleChange}
-            className="jd-input"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            placeholder="********"
-            value={formData.password}
-            onChange={handleChange}
-            className="jd-input"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="role" className="mb-1 block text-sm font-medium text-slate-700">
-            I am a
-          </label>
-          <select
-            id="role"
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            className="jd-select"
-          >
-            <option value="jobseeker">Job Seeker</option>
-            <option value="recruiter">Recruiter</option>
-          </select>
-        </div>
-
-        <button type="submit" disabled={loading} className="jd-btn w-full">
-          {loading ? <Spinner /> : "Sign Up"}
-        </button>
-
-        <p className="text-center text-sm text-slate-600">
-          Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
-            Log in
-          </Link>
-        </p>
-      </form>
-    </div>
+      </div>
+    </>
   );
 };
 

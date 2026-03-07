@@ -1,8 +1,9 @@
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Header from "./components/Header";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Spinner from "./components/Spinner";
 
 import Home from "./pages/Home";
 import Login from "./pages/login";
@@ -28,8 +29,29 @@ import OTPRequest from "./pages/OTPRequest";
 import OTPVerify from "./pages/OTPVerify";
 
 const App = () => {
+  const location = useLocation();
+  const [routeLoading, setRouteLoading] = useState(false);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    setRouteLoading(true);
+    const timer = setTimeout(() => setRouteLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [location.pathname, location.search]);
+
   return (
     <div className="jd-shell text-slate-800">
+      {routeLoading && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-white/65 backdrop-blur-[1px]">
+          <Spinner size="lg" text="Loading page..." />
+        </div>
+      )}
+
       <Header />
 
       <main className="jd-container py-6 md:py-8">

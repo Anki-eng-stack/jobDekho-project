@@ -1,65 +1,47 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios"; // Or your API instance, e.g., API from "../services/api"
+import axios from "axios";
 import { toast } from "react-toastify";
-import Spinner from "../components/Spinner"; // Assuming Spinner is a simple loading spinner component
 import {
-  // ⭐ REMOVED CalendarEdit from here ⭐
-  UserRound, // For applicant name
-  BriefcaseBusiness, // For job title
-  CalendarCheck2, // For date input
-  Video, // For online mode
-  MapPin, // For offline mode / location input
-  NotebookPen, // For notes
-  Save, // For submit/save button
-  Loader2, // For loading initial data
-  Edit, // ⭐ ADDED Edit for the title icon ⭐
-  XCircle, // ⭐ ADDED XCircle for status dropdown ⭐
-  CheckCircle, // ⭐ ADDED CheckCircle for status dropdown ⭐
+  UserRound, BriefcaseBusiness, CalendarCheck2,
+  Video, MapPin, NotebookPen, Save, Loader2,
+  Edit, XCircle, CheckCircle,
 } from "lucide-react";
 
 const EditInterview = () => {
-  const { interviewId } = useParams(); // Get interview ID from URL
+  const { interviewId } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
+  const token = localStorage.getItem("token");
 
-  const [interview, setInterview] = useState(null); // State to store fetched interview details
-  const [loadingInitial, setLoadingInitial] = useState(true); // Loading state for fetching existing interview
-  const [savingChanges, setSavingChanges] = useState(false); // Loading state for saving updates
+  const [interview, setInterview]           = useState(null);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [savingChanges, setSavingChanges]   = useState(false);
 
   const [form, setForm] = useState({
-    date: "",
-    mode: "online",
-    location: "", // Can be meeting link or physical address
-    notes: "",
-    status: "scheduled", // Allow recruiter to change status
+    date: "", mode: "online", location: "", notes: "", status: "scheduled",
   });
 
-  // Fetch existing interview details on component mount
   useEffect(() => {
     const fetchInterviewDetails = async () => {
       setLoadingInitial(true);
       try {
-        const res = await axios.get(
-          `http://localhost:5000/api/interviews/${interviewId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const fetchedInterview = res.data; // Assuming backend sends interview object directly
-        setInterview(fetchedInterview); // Store full interview object
-
-        // Pre-fill the form with fetched data
+        const res = await axios.get(`http://localhost:5000/api/interviews/${interviewId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const f = res.data;
+        setInterview(f);
         setForm({
-          date: fetchedInterview.date ? new Date(fetchedInterview.date).toISOString().slice(0, 16) : "", // Format for datetime-local
-          mode: fetchedInterview.mode || "online",
-          location: fetchedInterview.location || "",
-          notes: fetchedInterview.notes || "",
-          status: fetchedInterview.status || "scheduled",
+          date: f.date ? new Date(f.date).toISOString().slice(0, 16) : "",
+          mode: f.mode || "online",
+          location: f.location || "",
+          notes: f.notes || "",
+          status: f.status || "scheduled",
         });
         toast.success("Interview details loaded!");
       } catch (err) {
         console.error("Failed to load interview details:", err.response?.data || err.message);
-        toast.error(err.response?.data?.error || "Failed to load interview details. It might not exist or you lack permission.");
-        navigate("/recruiter"); // Redirect if failed to load
+        toast.error(err.response?.data?.error || "Failed to load interview details.");
+        navigate("/recruiter");
       } finally {
         setLoadingInitial(false);
       }
@@ -69,41 +51,26 @@ const EditInterview = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSavingChanges(true);
-
-    // Basic validation
     if (!form.date || !form.mode || !form.location) {
       toast.error("Please fill in all required fields (Date, Mode, Location).");
-      setSavingChanges(false);
-      return;
+      setSavingChanges(false); return;
     }
-
     try {
-      // API call to update the interview
-      await axios.put(
-        `http://localhost:5000/api/interviews/${interviewId}`,
-        form, // Send the entire form data
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.put(`http://localhost:5000/api/interviews/${interviewId}`, form, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       toast.success("Interview updated successfully!");
-      // Navigate back to the applicants list for the job associated with this interview
-      // This requires the 'interview' object to have 'application.job._id' or similar
-      // For simplicity, navigating to recruiter dashboard or assuming you'll pass job ID
-      // Make sure interview.application.job is populated from backend when fetching interview
-      const jobId = interview?.application?.job?._id || interview?.job?._id; // Check both potential paths
-      if (jobId) {
-        navigate(`/recruiter/jobs/${jobId}/applicants`);
-      } else {
-        navigate("/recruiter"); // Fallback
-      }
+      const jobId = interview?.application?.job?._id || interview?.job?._id;
+      navigate(jobId ? `/recruiter/jobs/${jobId}/applicants` : "/recruiter");
     } catch (err) {
       console.error("Failed to update interview:", err.response?.data || err.message);
-      toast.error(err.response?.data?.error || "Failed to update interview. Please check inputs and try again.");
+      toast.error(err.response?.data?.error || "Failed to update interview.");
     } finally {
       setSavingChanges(false);
     }
@@ -111,182 +78,249 @@ const EditInterview = () => {
 
   if (loadingInitial) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex justify-center items-center">
-        <Loader2 className="animate-spin h-16 w-16 text-indigo-500" />
-        <p className="ml-4 text-xl font-medium text-gray-700">Loading interview details...</p>
-      </div>
+      <>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap'); @keyframes jdSpin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"linear-gradient(135deg,#f5f3ff,#ede9fe)", gap:"1rem", fontFamily:"'DM Sans',sans-serif" }}>
+          <div style={{ width:36, height:36, borderRadius:"50%", border:"3px solid #ede9fe", borderTopColor:"#7c3aed", animation:"jdSpin 0.7s linear infinite" }} />
+          <p style={{ fontSize:"0.95rem", color:"#7c3aed", fontWeight:600 }}>Loading interview details...</p>
+        </div>
+      </>
     );
   }
 
-  // If interview is null after loading, it means it wasn't found or an error occurred
   if (!interview) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-center items-center p-8">
-        <div className="flex flex-col items-center justify-center text-gray-600 bg-white p-12 rounded-2xl shadow-lg max-w-lg mx-auto border border-gray-200">
-          {/* ⭐ Replaced CalendarEdit with XCircle for 'not found' ⭐ */}
-          <XCircle className="w-16 h-16 text-red-400 mb-6 animate-pulse-slow" />
-          <p className="text-xl font-medium text-gray-700 mb-2">Interview Not Found!</p>
-          <p className="text-md text-gray-500 text-center">
-            The interview details could not be loaded.
-          </p>
-          <button
-            onClick={() => navigate("/recruiter")}
-            className="mt-8 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-1 text-lg font-semibold"
-          >
-            Back to Dashboard
-          </button>
+      <>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap'); @keyframes jdFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}`}</style>
+        <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"linear-gradient(135deg,#f5f3ff,#ede9fe)", padding:"1rem", fontFamily:"'DM Sans',sans-serif" }}>
+          <div style={{ background:"white", borderRadius:20, border:"1.5px solid #ede9fe", padding:"3rem 2.5rem", textAlign:"center", maxWidth:420, boxShadow:"0 8px 32px rgba(124,58,237,0.1)" }}>
+            <div style={{ animation:"jdFloat 3s ease-in-out infinite", marginBottom:"1.25rem" }}>
+              <XCircle size={56} color="#ef4444" style={{ margin:"0 auto" }} />
+            </div>
+            <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.2rem", fontWeight:800, color:"#1e1b4b", margin:"0 0 0.5rem" }}>Interview Not Found</h2>
+            <p style={{ fontSize:"0.875rem", color:"#64748b", margin:"0 0 1.5rem" }}>The interview details could not be loaded.</p>
+            <button onClick={() => navigate("/recruiter")} style={{ background:"linear-gradient(135deg,#7c3aed,#4f46e5)", color:"white", border:"none", borderRadius:10, padding:"0.65rem 1.5rem", fontWeight:700, fontSize:"0.875rem", cursor:"pointer", boxShadow:"0 4px 14px rgba(124,58,237,0.3)" }}>
+              Back to Dashboard
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
+  const statusConfig = {
+    scheduled: { icon: <CalendarCheck2 size={16} color="#1d4ed8"/>, bg:"#eff6ff", color:"#1d4ed8", border:"#bfdbfe" },
+    completed: { icon: <CheckCircle    size={16} color="#15803d"/>, bg:"#f0fdf4", color:"#15803d", border:"#bbf7d0" },
+    cancelled: { icon: <XCircle        size={16} color="#dc2626"/>, bg:"#fff1f2", color:"#dc2626", border:"#fecaca" },
+  };
+  const sc = statusConfig[form.status] || statusConfig.scheduled;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4 sm:px-6 lg:px-8 flex items-center justify-center animate-fade-in">
-      <div className="bg-white p-8 sm:p-10 rounded-2xl shadow-xl w-full max-w-xl border border-gray-200 transform transition-all duration-300 hover:shadow-2xl">
-        <h2 className="text-3xl font-extrabold text-center text-blue-800 mb-8 tracking-tight">
-          {/* ⭐ Replaced CalendarEdit with Edit for the title ⭐ */}
-          <Edit className="inline-block w-8 h-8 mr-3 text-indigo-600" /> Edit Interview
-        </h2>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
-        {/* Applicant and Job Info (Read-only) */}
-        <div className="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <p className="text-lg font-semibold text-blue-800 mb-2 flex items-center">
-            <UserRound className="w-6 h-6 mr-3 text-blue-600" />
-            Applicant: <span className="ml-2 text-gray-800">{interview.applicant?.name || "N/A"}</span>
-          </p>
-          <p className="text-lg font-semibold text-blue-800 flex items-center">
-            <BriefcaseBusiness className="w-6 h-6 mr-3 text-blue-600" />
-            Job Title: <span className="ml-2 text-gray-800">{interview.job?.title || interview.jobTitle || "N/A"}</span>
-          </p>
+        .jd-ei { font-family:'DM Sans',sans-serif; min-height:100vh; background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 50%,#e0e7ff 100%); display:flex; align-items:center; justify-content:center; padding:2rem 1rem; }
+
+        .jd-ei-card {
+          background:white; border-radius:22px; border:1.5px solid #ede9fe;
+          width:100%; max-width:580px;
+          box-shadow:0 12px 48px rgba(124,58,237,0.12); overflow:hidden;
+        }
+
+        .jd-ei-header {
+          background:linear-gradient(135deg,#7c3aed,#4f46e5);
+          padding:1.6rem 2rem; display:flex; align-items:center; gap:1rem;
+          position:relative; overflow:hidden;
+        }
+        .jd-ei-header::before { content:''; position:absolute; top:-50px; right:-50px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,0.07); }
+        .jd-ei-header-icon  { width:46px; height:46px; border-radius:13px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; z-index:1; }
+        .jd-ei-header-title { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:800; color:white; margin:0 0 2px; z-index:1; }
+        .jd-ei-header-sub   { font-size:0.78rem; color:#c4b5fd; margin:0; z-index:1; }
+
+        .jd-ei-body { padding:1.75rem 2rem; display:flex; flex-direction:column; gap:1.25rem; }
+
+        /* Info card */
+        .jd-ei-info {
+          background:#faf9ff; border:1.5px solid #ede9fe; border-radius:14px;
+          padding:1rem 1.1rem; display:flex; flex-direction:column; gap:0.5rem;
+        }
+        .jd-ei-info-row { display:flex; align-items:center; gap:0.625rem; font-size:0.875rem; }
+        .jd-ei-info-label { font-weight:600; color:#7c3aed; min-width:80px; display:flex; align-items:center; gap:5px; font-size:0.82rem; }
+        .jd-ei-info-value { color:#1e1b4b; font-weight:500; }
+
+        .jd-section-label {
+          font-size:0.72rem; font-weight:700; text-transform:uppercase;
+          letter-spacing:0.08em; color:#7c3aed;
+          display:flex; align-items:center; gap:6px; margin-bottom:0.625rem;
+        }
+        .jd-section-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,#ede9fe,transparent); }
+
+        .jd-field-label { font-size:0.78rem; font-weight:600; color:#475569; margin-bottom:4px; display:flex; align-items:center; gap:5px; }
+        .jd-field-label span { color:#ef4444; }
+
+        .jd-input, .jd-textarea, .jd-select {
+          font-family:'DM Sans',sans-serif; font-size:0.875rem; color:#1e1b4b;
+          background:#faf9ff; border:1.5px solid #ede9fe; border-radius:10px;
+          padding:0.65rem 0.875rem; outline:none; transition:all 0.2s;
+          width:100%; box-sizing:border-box;
+        }
+        .jd-input::placeholder, .jd-textarea::placeholder { color:#c4b5fd; }
+        .jd-input:focus, .jd-textarea:focus, .jd-select:focus { border-color:#7c3aed; background:white; box-shadow:0 0 0 3px rgba(124,58,237,0.1); }
+        .jd-textarea { resize:vertical; min-height:100px; line-height:1.6; }
+
+        .jd-select-wrap { position:relative; }
+        .jd-select-wrap::after { content:''; position:absolute; right:12px; top:50%; transform:translateY(-50%); border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid #7c3aed; pointer-events:none; }
+        .jd-select { appearance:none; -webkit-appearance:none; padding-left:2.5rem; padding-right:2rem; }
+        .jd-select-icon { position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); pointer-events:none; }
+
+        /* Mode toggle */
+        .jd-mode-toggle { display:flex; gap:0.625rem; }
+        .jd-mode-btn {
+          flex:1; padding:0.65rem; border-radius:10px; border:1.5px solid #ede9fe;
+          background:#faf9ff; cursor:pointer; transition:all 0.2s;
+          display:flex; align-items:center; justify-content:center; gap:6px;
+          font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:600; color:#64748b;
+        }
+        .jd-mode-btn.active-online  { border-color:#7c3aed; background:#f5f3ff; color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,0.08); }
+        .jd-mode-btn.active-offline { border-color:#16a34a; background:#f0fdf4; color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,0.08); }
+
+        /* Status pill select */
+        .jd-status-select-wrap { position:relative; }
+        .jd-status-display {
+          display:flex; align-items:center; gap:8px;
+          padding:0.65rem 1rem; border-radius:10px; border:1.5px solid;
+          background:; cursor:pointer; transition:all 0.2s;
+          font-size:0.875rem; font-weight:600;
+        }
+
+        .jd-submit-btn {
+          font-family:'Syne',sans-serif; font-size:0.95rem; font-weight:700;
+          color:white; background:linear-gradient(135deg,#7c3aed,#4f46e5);
+          border:none; border-radius:12px; padding:0.875rem 1.5rem;
+          width:100%; cursor:pointer; transition:all 0.2s;
+          box-shadow:0 4px 16px rgba(124,58,237,0.3);
+          display:flex; align-items:center; justify-content:center; gap:8px;
+        }
+        .jd-submit-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 22px rgba(124,58,237,0.42); }
+        .jd-submit-btn:disabled { opacity:0.6; cursor:not-allowed; }
+
+        @keyframes jdSpin { to{transform:rotate(360deg)} }
+      `}</style>
+
+      <div className="jd-ei">
+        <div className="jd-ei-card">
+
+          {/* Header */}
+          <div className="jd-ei-header">
+            <div className="jd-ei-header-icon"><Edit size={20} color="white" /></div>
+            <div>
+              <p className="jd-ei-header-title">Edit Interview</p>
+              <p className="jd-ei-header-sub">Update interview details for the applicant</p>
+            </div>
+          </div>
+
+          <div className="jd-ei-body">
+
+            {/* Info card — read only */}
+            <div className="jd-ei-info">
+              <div className="jd-ei-info-row">
+                <span className="jd-ei-info-label"><UserRound size={13}/>Applicant</span>
+                <span className="jd-ei-info-value">{interview.applicant?.name || "N/A"}</span>
+              </div>
+              <div style={{ height:1, background:"#f3f0ff" }} />
+              <div className="jd-ei-info-row">
+                <span className="jd-ei-info-label"><BriefcaseBusiness size={13}/>Job</span>
+                <span className="jd-ei-info-value">{interview.job?.title || interview.jobTitle || "N/A"}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:"1.1rem" }}>
+
+              {/* Date & Time */}
+              <div>
+                <p className="jd-section-label">📅 Schedule</p>
+                <label className="jd-field-label"><CalendarCheck2 size={13} color="#a78bfa"/> Date & Time <span>*</span></label>
+                <input type="datetime-local" name="date" value={form.date} onChange={handleChange} className="jd-input" required />
+              </div>
+
+              {/* Mode toggle */}
+              <div>
+                <p className="jd-section-label">🎯 Interview Mode</p>
+                <div className="jd-mode-toggle">
+                  <button type="button"
+                    className={`jd-mode-btn ${form.mode === "online" ? "active-online" : ""}`}
+                    onClick={() => setForm(p => ({ ...p, mode:"online" }))}
+                  >
+                    <Video size={15}/> Online
+                  </button>
+                  <button type="button"
+                    className={`jd-mode-btn ${form.mode === "offline" ? "active-offline" : ""}`}
+                    onClick={() => setForm(p => ({ ...p, mode:"offline" }))}
+                  >
+                    <MapPin size={15}/> In-Person
+                  </button>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="jd-field-label">
+                  {form.mode === "online"
+                    ? <><Video size={13} color="#7c3aed"/> Meeting Link <span>*</span></>
+                    : <><MapPin size={13} color="#16a34a"/> Physical Location <span>*</span></>
+                  }
+                </label>
+                <input type="text" name="location" value={form.location} onChange={handleChange}
+                  placeholder={form.mode === "online" ? "https://meet.google.com/xyz" : "123 Main St, Office Address"}
+                  className="jd-input" required />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="jd-field-label"><NotebookPen size={13} color="#a78bfa"/> Notes <span style={{ color:"#94a3b8", fontWeight:400 }}>(optional)</span></label>
+                <textarea name="notes" value={form.notes} onChange={handleChange}
+                  placeholder="Add any specific instructions or details for the applicant..."
+                  className="jd-textarea" />
+              </div>
+
+              {/* Status */}
+              <div>
+                <p className="jd-section-label">🏷️ Status</p>
+                <div className="jd-select-wrap">
+                  <span className="jd-select-icon">{sc.icon}</span>
+                  <select name="status" value={form.status} onChange={handleChange}
+                    className="jd-select"
+                    style={{ borderColor: sc.border, background: sc.bg, color: sc.color }}
+                    required
+                  >
+                    <option value="scheduled">Scheduled</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button type="submit" className="jd-submit-btn" disabled={savingChanges} style={{ marginTop:"0.25rem" }}>
+                {savingChanges ? (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
+                      style={{ animation:"jdSpin 0.7s linear infinite" }}>
+                      <path d="M21 12a9 9 0 1 1-9-9"/>
+                    </svg>
+                    Saving Changes...
+                  </>
+                ) : (
+                  <><Save size={17}/> Save Changes</>
+                )}
+              </button>
+
+            </form>
+          </div>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Interview Date */}
-          <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-              <CalendarCheck2 className="inline-block w-5 h-5 mr-2 text-gray-500" /> Interview Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              id="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800"
-              required
-            />
-          </div>
-
-          {/* Mode */}
-          <div>
-            <label htmlFor="mode" className="block text-sm font-medium text-gray-700 mb-1">
-              Mode
-            </label>
-            <div className="relative">
-              <select
-                id="mode"
-                name="mode"
-                value={form.mode}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-lg appearance-none bg-white pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800"
-                required
-              >
-                <option value="online">Online</option>
-                <option value="offline">Offline</option>
-              </select>
-              {form.mode === "online" ? (
-                <Video className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-600" size={20} />
-              ) : (
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600" size={20} />
-              )}
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Location / Meeting Link */}
-          <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-              {form.mode === "online" ? (
-                <> <Video className="inline-block w-5 h-5 mr-2 text-purple-600" /> Meeting Link (e.g., Google Meet, Zoom URL)</>
-              ) : (
-                <> <MapPin className="inline-block w-5 h-5 mr-2 text-green-600" /> Physical Location (e.g., Office Address)</>
-              )}
-            </label>
-            <input
-              type="text"
-              id="location"
-              name="location"
-              value={form.location}
-              onChange={handleChange}
-              placeholder={form.mode === "online" ? "https://meet.google.com/xyz" : "123 Main St, Anytown"}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 placeholder-gray-400"
-              required
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-              <NotebookPen className="inline-block w-5 h-5 mr-2 text-gray-500" /> Notes (Optional)
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={form.notes}
-              onChange={handleChange}
-              placeholder="Add any specific instructions or details for the applicant/interviewer."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800 placeholder-gray-400 h-28 resize-y"
-            />
-          </div>
-
-          {/* Status Update (Optional: Allow recruiters to change status here) */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <div className="relative">
-              <select
-                id="status"
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-lg appearance-none bg-white pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out text-gray-800"
-                required
-              >
-                <option value="scheduled">Scheduled</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-                {/* Add other relevant statuses if your model supports them, e.g., "rescheduled" */}
-              </select>
-              {form.status === "scheduled" && <CalendarCheck2 className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600" size={20} />}
-              {form.status === "completed" && <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-green-600" size={20} />}
-              {form.status === "cancelled" && <XCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600" size={20} />}
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-              </div>
-            </div>
-          </div>
-
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={savingChanges}
-            className="w-full bg-indigo-600 text-white p-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center font-semibold text-lg mt-8"
-          >
-            {savingChanges ? (
-              <Spinner />
-            ) : (
-              <>
-                <Save size={20} className="mr-2" /> Save Changes
-              </>
-            )}
-          </button>
-        </form>
       </div>
-    </div>
+    </>
   );
 };
 
