@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
+import { API_BASE_URL, SOCKET_URL } from "../config/apiConfig";
 import {
   BriefcaseBusiness, UserRound, Mail, CalendarDays,
   Video, MapPin, Edit, PlusCircle, FileText,
@@ -44,7 +45,7 @@ const JobApplicantsList = () => {
   const fetchApplicants = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await axios.get(`http://localhost:5000/api/applications/job/${jobId}`, {
+      const res = await axios.get(`${API_BASE_URL}/applications/job/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const applications = res.data.applications || [];
@@ -53,7 +54,7 @@ const JobApplicantsList = () => {
       if (applications.length > 0 && applications[0].job?.title) {
         setJobTitle(applications[0].job.title);
       } else {
-        const jobRes = await axios.get(`http://localhost:5000/api/jobs/${jobId}`, {
+        const jobRes = await axios.get(`${API_BASE_URL}/jobs/${jobId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setJobTitle(jobRes.data.title);
@@ -68,7 +69,7 @@ const JobApplicantsList = () => {
 
   useEffect(() => {
     if (!token) return;
-    const socket = io("http://localhost:5000", { auth: { token } });
+    const socket = io(SOCKET_URL, { auth: { token } });
     socket.on("application:status-updated", (payload) => {
       if (String(payload?.jobId) !== String(jobId)) return;
       fetchApplicants();
@@ -82,7 +83,7 @@ const JobApplicantsList = () => {
     try {
       setUpdatingId(applicationId);
       await axios.patch(
-        `http://localhost:5000/api/applications/${applicationId}/status`,
+        `${API_BASE_URL}/applications/${applicationId}/status`,
         { status, note: "Updated from recruiter dashboard" },
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API_BASE_URL } from "../config/apiConfig";
 import {
   BriefcaseBusiness, Building2, MapPin, IndianRupee,
   Tag, Sparkles, AlignLeft, Send, AlertCircle,
@@ -20,11 +21,11 @@ const JobDetails = () => {
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/jobs/${id}`);
+        const res = await axios.get(`${API_BASE_URL}/jobs/${id}`);
         setJob(res.data);
         if (token) {
           try {
-            const appRes = await axios.get("http://localhost:5000/api/applications/my", {
+            const appRes = await axios.get(`${API_BASE_URL}/applications/my`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             const applied = (appRes.data.applications || []).some(

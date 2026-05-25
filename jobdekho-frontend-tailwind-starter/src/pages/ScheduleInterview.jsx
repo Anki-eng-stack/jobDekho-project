@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API_BASE_URL } from "../config/apiConfig";
 import {
   CalendarDays, UserRound, BriefcaseBusiness,
   CalendarCheck2, Video, MapPin, NotebookPen,
@@ -22,7 +23,7 @@ const ScheduleInterview = () => {
       setLoadingApp(true);
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/applications/${applicationId}`,
+          `${API_BASE_URL}/applications/${applicationId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setApplication(res.data.application);
@@ -54,7 +55,7 @@ const ScheduleInterview = () => {
     setScheduling(true);
     try {
       await axios.post(
-        `http://localhost:5000/api/interviews`,
+        `${API_BASE_URL}/interviews`,
         {
           application: applicationId,
           job: application.job._id,

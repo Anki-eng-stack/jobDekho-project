@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import API from "../services/api";
+import { SOCKET_URL } from "../config/apiConfig";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -45,7 +46,7 @@ const Applications = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return undefined;
-    const socket = io("http://localhost:5000", { auth: { token } });
+    const socket = io(SOCKET_URL, { auth: { token } });
     socket.on("application:status-updated", () => { fetchApplications(); });
     return () => socket.disconnect();
   }, []);

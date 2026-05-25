@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { FileText, UploadCloud, CheckCircle } from "lucide-react";
+import { API_BASE_URL } from "../config/apiConfig";
 
 const ApplyForm = () => {
   const { jobId }  = useParams();
@@ -58,7 +59,7 @@ const ApplyForm = () => {
       setLoading(false); return;
     }
     try {
-      const existingRes = await axios.get("http://localhost:5000/api/applications/my", {
+      const existingRes = await axios.get(`${API_BASE_URL}/applications/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const alreadyApplied = (existingRes.data.applications || []).some(
@@ -77,7 +78,7 @@ const ApplyForm = () => {
     formData.append("experience", experience); formData.append("skills", skills);
     formData.append("resume", resumeFile);
     try {
-      await axios.post(`http://localhost:5000/api/applications/apply/${jobId}`, formData, {
+      await axios.post(`${API_BASE_URL}/applications/apply/${jobId}`, formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Application submitted successfully!");

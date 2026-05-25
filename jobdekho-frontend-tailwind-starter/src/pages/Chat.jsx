@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import API from "../services/api";
+import { SOCKET_URL } from "../config/apiConfig";
 import { toast } from "react-toastify";
 import { Send, MessageSquare } from "lucide-react";
 
@@ -117,7 +118,7 @@ const Chat = () => {
   useEffect(() => {
     if (!token) return;
 
-    const socket = io("http://localhost:5000", { auth: { token } });
+    const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
 
     socket.on("chat:new-message", (payload) => {

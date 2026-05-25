@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Mail, Lock, LogIn, KeyRound, BriefcaseBusiness } from "lucide-react";
+import { API_BASE_URL } from "../config/apiConfig";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", formData);
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, formData);
       const { token, user } = res.data;
       localStorage.setItem("token", token);
       localStorage.setItem("role", user.role);

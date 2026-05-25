@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { API_BASE_URL } from "../config/apiConfig";
 import {
   UserRound, BriefcaseBusiness, CalendarCheck2,
   Video, MapPin, NotebookPen, Save, Loader2,
@@ -25,7 +26,7 @@ const EditInterview = () => {
     const fetchInterviewDetails = async () => {
       setLoadingInitial(true);
       try {
-        const res = await axios.get(`http://localhost:5000/api/interviews/${interviewId}`, {
+        const res = await axios.get(`${API_BASE_URL}/interviews/${interviewId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const f = res.data;
@@ -62,7 +63,7 @@ const EditInterview = () => {
       setSavingChanges(false); return;
     }
     try {
-      await axios.put(`http://localhost:5000/api/interviews/${interviewId}`, form, {
+      await axios.put(`${API_BASE_URL}/interviews/${interviewId}`, form, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Interview updated successfully!");

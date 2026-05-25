@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/apiConfig";
 import {
   FileText, BriefcaseBusiness, CalendarDays, Video, MapPin,
   Loader2, Hourglass, CheckCircle, XCircle, ClipboardCheck,
@@ -33,7 +34,7 @@ const ApplicantMyApplications = () => {
       setLoading(true); setError(null);
       try {
         const res = await axios.get(
-          "http://localhost:5000/api/applications/my-applications",
+          `${API_BASE_URL}/applications/my-applications`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log("ApplicantMyApplications - API Response Data:", res.data);

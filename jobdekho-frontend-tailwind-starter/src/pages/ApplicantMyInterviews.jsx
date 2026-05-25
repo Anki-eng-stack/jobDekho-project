@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { CalendarDays, BriefcaseBusiness, UserRound, MapPin, Video, NotebookPen } from "lucide-react";
+import { API_BASE_URL } from "../config/apiConfig";
 
 const interviewStatusConfig = {
   scheduled:  { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe", label: "Scheduled" },
@@ -22,7 +23,7 @@ const ApplicantMyInterviews = () => {
     const fetchMyInterviews = async () => {
       setLoading(true); setError(null);
       try {
-        const res = await axios.get("http://localhost:5000/api/interviews/my-interviews", {
+        const res = await axios.get(`${API_BASE_URL}/interviews/my-interviews`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setInterviews(res.data);

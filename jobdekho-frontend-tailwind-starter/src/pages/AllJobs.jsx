@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { BriefcaseBusiness, Building2, MapPin, IndianRupee, Search, SlidersHorizontal } from "lucide-react";
+import { API_BASE_URL } from "../config/apiConfig";
 
 const AllJobs = () => {
   const [jobs, setJobs] = useState([]);
@@ -13,13 +14,13 @@ const AllJobs = () => {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const jobsRes = await axios.get("http://localhost:5000/api/jobs");
+        const jobsRes = await axios.get(`${API_BASE_URL}/jobs`);
         let availableJobs = jobsRes.data;
 
         const token = localStorage.getItem("token");
         if (token) {
           try {
-            const applicationsRes = await axios.get("http://localhost:5000/api/applications/my", {
+            const applicationsRes = await axios.get(`${API_BASE_URL}/applications/my`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             const appliedJobIds = new Set(
