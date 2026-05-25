@@ -2,6 +2,40 @@ const Job = require("../models/Job");
 const cloudinary = require("../config/cloudinary");
 const fs = require("fs"); // Added fs for file unlinking
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+const cleanupTempFile = (file) => {
+  if (!file?.tempFilePath) return;
+  fs.unlink(file.tempFilePath, (err) => {
+    if (err) console.warn("Failed to delete temp file:", err.message);
+  });
+};
+
+const getUploadedFile = (file) => (Array.isArray(file) ? file[0] : file);
+
+const validateImageFile = (file) => {
+  if (!file) return null;
+  if (!file.mimetype?.startsWith("image/")) {
+    return "Only image files are allowed for job images";
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    return "Job image must be 5MB or smaller";
+  }
+  return null;
+};
+
+const uploadJobImage = async (file) => {
+  const result = await cloudinary.uploader.upload(file.tempFilePath, {
+    folder: "AnkanFolder",
+    resource_type: "image",
+  });
+
+  return {
+    public_id: result.public_id,
+    url: result.secure_url,
+  };
+};
+
 // Create job (Recruiter only)
 exports.createJob = async (req, res) => {
   try {
@@ -16,17 +50,21 @@ exports.createJob = async (req, res) => {
     let jobImage = {};
 
     if (req.files && req.files.image) {
-      const result = await cloudinary.uploader.upload(req.files.image.tempFilePath, {
-        folder: "AnkanFolder" // Ensure this folder exists or is desired in Cloudinary
-      });
-      fs.unlink(req.files.image.tempFilePath, (err) => { // Delete local temp file
-        if (err) console.warn("Failed to delete temp file:", err);
-      });
+      if (!cloudinary.isConfigured || !cloudinary.isConfigured()) {
+        return res.status(500).json({
+          error: "Cloudinary is not configured. Check CLOUDINARY env keys.",
+        });
+      }
 
-      jobImage = {
-        public_id: result.public_id,
-        url: result.secure_url
-      };
+      const imageFile = getUploadedFile(req.files.image);
+      const imageError = validateImageFile(imageFile);
+      if (imageError) {
+        cleanupTempFile(imageFile);
+        return res.status(400).json({ error: imageError });
+      }
+
+      jobImage = await uploadJobImage(imageFile);
+      cleanupTempFile(imageFile);
     }
 
     const job = await Job.create({
@@ -51,6 +89,12 @@ exports.createJob = async (req, res) => {
     if (err.name === 'ValidationError') {
         const errors = Object.values(err.errors).map(el => el.message);
         return res.status(400).json({ error: "Validation failed", details: errors });
+    }
+    if (err.http_code) {
+      return res.status(500).json({
+        error: "Job image upload failed on Cloudinary",
+        detail: err.message,
+      });
     }
     res.status(500).json({ error: "Failed to create job", detail: err.message });
   }
@@ -107,21 +151,25 @@ exports.updateJob = async (req, res) => {
 
     // If updating image
     if (req.files && req.files.image) {
+      if (!cloudinary.isConfigured || !cloudinary.isConfigured()) {
+        return res.status(500).json({
+          error: "Cloudinary is not configured. Check CLOUDINARY env keys.",
+        });
+      }
+
+      const imageFile = getUploadedFile(req.files.image);
+      const imageError = validateImageFile(imageFile);
+      if (imageError) {
+        cleanupTempFile(imageFile);
+        return res.status(400).json({ error: imageError });
+      }
+
       if (job.jobImage?.public_id) {
         await cloudinary.uploader.destroy(job.jobImage.public_id);
       }
 
-      const result = await cloudinary.uploader.upload(req.files.image.tempFilePath, {
-        folder: "AnkanFolder"
-      });
-      fs.unlink(req.files.image.tempFilePath, (err) => { // Delete local temp file
-        if (err) console.warn("Failed to delete temp file:", err);
-      });
-
-      req.body.jobImage = {
-        public_id: result.public_id,
-        url: result.secure_url
-      };
+      req.body.jobImage = await uploadJobImage(imageFile);
+      cleanupTempFile(imageFile);
     }
 
     if (req.body.skills) {
@@ -132,6 +180,12 @@ exports.updateJob = async (req, res) => {
     res.json({ message: "Job updated", updatedJob });
   } catch (err) {
     console.error("Update job error:", err.message);
+    if (err.http_code) {
+      return res.status(500).json({
+        error: "Job image upload failed on Cloudinary",
+        detail: err.message,
+      });
+    }
     res.status(500).json({ error: "Failed to update job" });
   }
 };

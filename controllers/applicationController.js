@@ -1,7 +1,27 @@
 const cloudinary = require("../config/cloudinary");
 const fs = require("fs");
+const path = require("path");
 const Job = require("../models/Job");
 const Application = require("../models/Application");
+
+const MAX_RESUME_SIZE = 5 * 1024 * 1024;
+
+const cleanupTempFile = (file) => {
+  if (!file?.tempFilePath) return;
+  fs.unlink(file.tempFilePath, (unlinkErr) => {
+    if (unlinkErr) console.warn("Failed to delete temp file:", unlinkErr.message);
+  });
+};
+
+const isPdfFile = (file) =>
+  file?.mimetype === "application/pdf" ||
+  file?.name?.toLowerCase().endsWith(".pdf");
+
+const safePublicName = (filename) => {
+  const parsed = path.parse(filename || "resume");
+  const safeName = parsed.name.replace(/[^a-z0-9-_]+/gi, "-").replace(/^-+|-+$/g, "");
+  return `${Date.now()}-${safeName || "resume"}.pdf`;
+};
 
 const normalizeStatus = (status) => {
   const value = String(status || "").toLowerCase().trim();
@@ -80,15 +100,26 @@ exports.applyToJob = async (req, res) => {
       });
     }
 
-    const file = req.files.resume;
+    const file = Array.isArray(req.files.resume) ? req.files.resume[0] : req.files.resume;
+
+    if (!isPdfFile(file)) {
+      cleanupTempFile(file);
+      return res.status(400).json({ error: "Only PDF resumes are allowed" });
+    }
+
+    if (file.size > MAX_RESUME_SIZE) {
+      cleanupTempFile(file);
+      return res.status(400).json({ error: "Resume must be 5MB or smaller" });
+    }
+
     const result = await cloudinary.uploader.upload(file.tempFilePath, {
       folder: "AnkanFolder/Resumes",
-      resource_type: "auto",
+      resource_type: "raw",
+      public_id: safePublicName(file.name),
+      overwrite: false,
     });
 
-    fs.unlink(file.tempFilePath, (unlinkErr) => {
-      if (unlinkErr) console.warn("Failed to delete temp file:", unlinkErr.message);
-    });
+    cleanupTempFile(file);
 
     const application = await Application.create({
       job: jobId,

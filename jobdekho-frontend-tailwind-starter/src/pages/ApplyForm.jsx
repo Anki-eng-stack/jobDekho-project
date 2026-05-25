@@ -15,18 +15,34 @@ const ApplyForm = () => {
   const [dragOver, setDragOver]     = useState(false);
   const [loading, setLoading]       = useState(false);
 
+  const validateResume = (file) => {
+    if (!file) return false;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Please upload a PDF file.");
+      return false;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Resume must be 5MB or smaller.");
+      return false;
+    }
+    return true;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => setResumeFile(e.target.files[0]);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (validateResume(file)) setResumeFile(file);
+    else e.target.value = "";
+  };
 
   const handleDrop = (e) => {
     e.preventDefault(); setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type === "application/pdf") setResumeFile(file);
-    else toast.error("Please upload a PDF file.");
+    if (validateResume(file)) setResumeFile(file);
   };
 
   const handleSubmit = async (e) => {
