@@ -115,7 +115,11 @@ exports.applyToJob = async (req, res) => {
     const result = await cloudinary.uploader.upload(file.tempFilePath, {
       folder: "AnkanFolder/Resumes",
       resource_type: "raw",
+      type: "upload",
+      access_mode: "public",
       public_id: safePublicName(file.name),
+      filename_override: file.name,
+      use_filename: false,
       overwrite: false,
     });
 
