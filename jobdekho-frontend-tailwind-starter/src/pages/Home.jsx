@@ -1,266 +1,93 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { BriefcaseBusiness, Sparkles, ArrowRight, CheckCircle } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, BadgeCheck, Bot, BriefcaseBusiness, Building2, CheckCircle2, Clock3, IndianRupee, MapPin, MessageCircle, Search, ShieldCheck, Sparkles, UserRoundCheck, UsersRound } from "lucide-react";
+import API from "../services/api";
+
+const categories = [
+  { label: "Technology", icon: "⌘", query: "developer" },
+  { label: "Design", icon: "✦", query: "design" },
+  { label: "Marketing", icon: "↗", query: "marketing" },
+  { label: "Business", icon: "◈", query: "manager" },
+];
 
 const Home = () => {
+  const navigate = useNavigate();
+  const [jobs, setJobs] = useState([]);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    API.get("/jobs").then(({ data }) => setJobs(Array.isArray(data) ? data : [])).catch(() => setJobs([]));
+  }, []);
+
+  const featured = useMemo(() => jobs.slice(0, 3), [jobs]);
+  const searchJobs = (event) => {
+    event.preventDefault();
+    navigate(search.trim() ? `/jobs?q=${encodeURIComponent(search.trim())}` : "/jobs");
+  };
+
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
-
-        .jd-home {
-          font-family: 'DM Sans', sans-serif;
-          min-height: 100vh;
-          background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #e0e7ff 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem 1rem;
-          position: relative;
-          overflow: hidden;
-        }
-
-        /* Background blobs */
-        .jd-home-blob1 {
-          position: absolute; top: -80px; right: -80px;
-          width: 340px; height: 340px; border-radius: 50%;
-          background: radial-gradient(circle, rgba(167,139,250,0.25), transparent 70%);
-          pointer-events: none;
-        }
-        .jd-home-blob2 {
-          position: absolute; bottom: -100px; left: -80px;
-          width: 380px; height: 380px; border-radius: 50%;
-          background: radial-gradient(circle, rgba(99,102,241,0.18), transparent 70%);
-          pointer-events: none;
-        }
-        .jd-home-blob3 {
-          position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%);
-          width: 600px; height: 300px; border-radius: 50%;
-          background: radial-gradient(ellipse, rgba(196,181,253,0.12), transparent 70%);
-          pointer-events: none;
-        }
-
-        .jd-home-card {
-          position: relative; z-index: 1;
-          background: white;
-          border-radius: 28px;
-          border: 1.5px solid #ede9fe;
-          width: 100%; max-width: 680px;
-          box-shadow: 0 20px 60px rgba(124,58,237,0.13);
-          overflow: hidden;
-        }
-
-        /* Gradient header strip */
-        .jd-home-header {
-          background: linear-gradient(135deg, #7c3aed, #4f46e5);
-          padding: 2rem 2.5rem 2.5rem;
-          position: relative; overflow: hidden;
-          text-align: center;
-        }
-        .jd-home-header::before {
-          content: ''; position: absolute;
-          top: -60px; right: -60px;
-          width: 200px; height: 200px; border-radius: 50%;
-          background: rgba(255,255,255,0.07);
-        }
-        .jd-home-header::after {
-          content: ''; position: absolute;
-          bottom: -50px; left: -40px;
-          width: 150px; height: 150px; border-radius: 50%;
-          background: rgba(255,255,255,0.05);
-        }
-
-        .jd-home-logo-wrap {
-          display: inline-flex; align-items: center; justify-content: center;
-          width: 64px; height: 64px; border-radius: 18px;
-          background: rgba(255,255,255,0.18);
-          border: 1.5px solid rgba(255,255,255,0.28);
-          margin: 0 auto 1.25rem;
-          position: relative; z-index: 1;
-          animation: jdFloat 3.5s ease-in-out infinite;
-        }
-
-        .jd-home-chip {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: rgba(255,255,255,0.18);
-          border: 1px solid rgba(255,255,255,0.28);
-          color: #ede9fe;
-          font-size: 0.72rem; font-weight: 700;
-          text-transform: uppercase; letter-spacing: 0.1em;
-          padding: 0.3rem 0.9rem; border-radius: 999px;
-          margin-bottom: 1rem;
-          position: relative; z-index: 1;
-        }
-
-        .jd-home-title {
-          font-family: 'Syne', sans-serif;
-          font-size: clamp(1.8rem, 4vw, 2.6rem);
-          font-weight: 900;
-          color: white;
-          line-height: 1.2;
-          margin: 0 0 0.75rem;
-          position: relative; z-index: 1;
-        }
-        .jd-home-title span {
-          background: linear-gradient(135deg, #fde68a, #fbbf24);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .jd-home-subtitle {
-          font-size: 0.95rem; color: #c4b5fd;
-          line-height: 1.65; max-width: 480px;
-          margin: 0 auto;
-          position: relative; z-index: 1;
-        }
-
-        /* Body */
-        .jd-home-body { padding: 2rem 2.5rem 2.5rem; }
-
-        /* Feature pills */
-        .jd-home-features {
-          display: flex; flex-wrap: wrap; gap: 0.625rem;
-          justify-content: center; margin-bottom: 2rem;
-        }
-        .jd-home-feat {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: #faf9ff; border: 1.5px solid #ede9fe;
-          color: #5b21b6; font-size: 0.8rem; font-weight: 600;
-          padding: 0.4rem 0.875rem; border-radius: 999px;
-          transition: all 0.2s;
-        }
-        .jd-home-feat:hover { background: #f5f3ff; border-color: #c4b5fd; transform: translateY(-1px); }
-
-        /* Divider */
-        .jd-home-divider {
-          font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.08em; color: #7c3aed;
-          display: flex; align-items: center; gap: 8px;
-          margin-bottom: 1.5rem;
-        }
-        .jd-home-divider::before,
-        .jd-home-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #ede9fe); }
-        .jd-home-divider::before { background: linear-gradient(90deg, transparent, #ede9fe); }
-        .jd-home-divider::after  { background: linear-gradient(90deg, #ede9fe, transparent); }
-
-        /* CTA Buttons */
-        .jd-home-ctas { display: flex; gap: 0.875rem; flex-wrap: wrap; }
-
-        .jd-home-btn-primary {
-          font-family: 'Syne', sans-serif;
-          flex: 1; min-width: 160px;
-          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-          background: linear-gradient(135deg, #7c3aed, #4f46e5);
-          color: white; font-size: 0.95rem; font-weight: 700;
-          padding: 0.875rem 1.5rem; border-radius: 12px;
-          text-decoration: none; transition: all 0.2s;
-          box-shadow: 0 4px 16px rgba(124,58,237,0.32);
-        }
-        .jd-home-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(124,58,237,0.44); }
-
-        .jd-home-btn-secondary {
-          font-family: 'Syne', sans-serif;
-          flex: 1; min-width: 160px;
-          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-          background: white; color: #7c3aed;
-          font-size: 0.95rem; font-weight: 700;
-          padding: 0.875rem 1.5rem; border-radius: 12px;
-          text-decoration: none; transition: all 0.2s;
-          border: 1.5px solid #c4b5fd;
-        }
-        .jd-home-btn-secondary:hover { background: #f5f3ff; border-color: #7c3aed; transform: translateY(-2px); box-shadow: 0 4px 14px rgba(124,58,237,0.12); }
-
-        /* Stats row */
-        .jd-home-stats {
-          display: flex; gap: 0; margin-top: 2rem;
-          background: #faf9ff; border: 1.5px solid #ede9fe;
-          border-radius: 14px; overflow: hidden;
-        }
-        .jd-home-stat {
-          flex: 1; padding: 1rem 0.5rem; text-align: center;
-          border-right: 1.5px solid #ede9fe;
-        }
-        .jd-home-stat:last-child { border-right: none; }
-        .jd-home-stat-num {
-          font-family: 'Syne', sans-serif;
-          font-size: 1.3rem; font-weight: 800; color: #7c3aed;
-        }
-        .jd-home-stat-label {
-          font-size: 0.72rem; color: #94a3b8; font-weight: 500; margin-top: 2px;
-        }
-
-        @keyframes jdFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-      `}</style>
-
-      <div className="jd-home">
-        <div className="jd-home-blob1" />
-        <div className="jd-home-blob2" />
-        <div className="jd-home-blob3" />
-
-        <div className="jd-home-card">
-
-          {/* Header */}
-          <div className="jd-home-header">
-            <div className="jd-home-logo-wrap">
-              <BriefcaseBusiness size={30} color="white" />
-            </div>
-            <div className="jd-home-chip">
-              <Sparkles size={11} /> Career Platform
-            </div>
-            <h1 className="jd-home-title">
-              Find Better Jobs Faster<br />with <span>JobDekho</span>
-            </h1>
-            <p className="jd-home-subtitle">
-              Discover verified opportunities, apply smoothly, track every step, and manage your career — all in one place.
-            </p>
+    <div className="jd-landing">
+      <section className="jd-landing-hero">
+        <div className="jd-hero-orb jd-hero-orb-one" /><div className="jd-hero-orb jd-hero-orb-two" />
+        <div className="jd-hero-content">
+          <div className="jd-hero-copy jd-reveal">
+            <p className="jd-eyebrow"><Sparkles size={14} /> India&apos;s career companion</p>
+            <h1>Find work that<br /><em>moves you forward.</em></h1>
+            <p className="jd-hero-description">Discover relevant roles, apply with confidence, and keep every career conversation in one simple place.</p>
+            <form className="jd-search-panel" onSubmit={searchJobs}>
+              <label><Search size={19} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Job title, skill, or company" aria-label="Search jobs" /></label>
+              <button type="submit">Find jobs <ArrowRight size={17} /></button>
+            </form>
+            <div className="jd-hero-trust"><span><CheckCircle2 size={15} /> Verified listings</span><span><CheckCircle2 size={15} /> Direct applications</span><span><CheckCircle2 size={15} /> Real-time updates</span></div>
           </div>
 
-          {/* Body */}
-          <div className="jd-home-body">
-
-            {/* Feature pills */}
-            <div className="jd-home-features">
-              {[
-                { icon: "✅", text: "Verified Listings" },
-                { icon: "⚡", text: "1-Click Apply" },
-                { icon: "📊", text: "Track Applications" },
-                { icon: "🔔", text: "Job Alerts" },
-              ].map(f => (
-                <span key={f.text} className="jd-home-feat">{f.icon} {f.text}</span>
-              ))}
+          <div className="jd-hero-visual jd-reveal jd-reveal-late" aria-label="Job search preview">
+            <div className="jd-hero-card jd-hero-card-main">
+              <div className="jd-card-topline"><span className="jd-live-dot" /> New opportunities today <BadgeCheck size={16} /></div>
+              <div className="jd-role-icon"><BriefcaseBusiness size={27} /></div>
+              <p className="jd-role-label">Featured opportunity</p>
+              <h2>{featured[0]?.title || "Build your next big thing"}</h2>
+              <p className="jd-role-company"><Building2 size={15} /> {featured[0]?.company || "Trusted companies are hiring"}</p>
+              <div className="jd-role-tags"><span><MapPin size={13} /> {featured[0]?.location || "India"}</span><span><IndianRupee size={13} /> {featured[0]?.salary ? Number(featured[0].salary).toLocaleString("en-IN") : "Competitive"}</span></div>
+              <Link to={featured[0]?._id ? `/jobs/${featured[0]._id}` : "/jobs"} className="jd-view-role">Explore role <ArrowRight size={15} /></Link>
             </div>
-
-            <div className="jd-home-divider">Get Started</div>
-
-            {/* CTA Buttons */}
-            <div className="jd-home-ctas">
-              <Link to="/jobs" className="jd-home-btn-primary">
-                <BriefcaseBusiness size={17} /> Browse Jobs <ArrowRight size={15} />
-              </Link>
-              <Link to="/signup" className="jd-home-btn-secondary">
-                <CheckCircle size={17} /> Create Account
-              </Link>
-            </div>
-
-            {/* Stats */}
-            <div className="jd-home-stats">
-              {[
-                { num: "10K+", label: "Jobs Posted" },
-                { num: "5K+", label: "Companies" },
-                { num: "50K+", label: "Job Seekers" },
-              ].map(s => (
-                <div key={s.label} className="jd-home-stat">
-                  <div className="jd-home-stat-num">{s.num}</div>
-                  <div className="jd-home-stat-label">{s.label}</div>
-                </div>
-              ))}
-            </div>
-
+            <div className="jd-hero-mini jd-hero-mini-one"><span className="jd-mini-icon jd-mini-green"><UserRoundCheck size={17} /></span><div><b>Application tracking</b><small>Every step, clearly visible</small></div></div>
+            <div className="jd-hero-mini jd-hero-mini-two"><span className="jd-mini-icon jd-mini-violet"><Bot size={17} /></span><div><b>Career AI</b><small>Helpful answers, on demand</small></div></div>
           </div>
         </div>
-      </div>
-    </>
+        <div className="jd-hero-stats"><div><strong>{jobs.length || "—"}</strong><span>live jobs</span></div><div><strong>1</strong><span>place to manage your career</span></div><div><strong>24/7</strong><span>career support with AI</span></div></div>
+      </section>
+
+      <section className="jd-home-section jd-category-section">
+        <div className="jd-section-heading"><div><p className="jd-eyebrow"><Sparkles size={14} /> Find your direction</p><h2>Browse by what<br /><em>you do best.</em></h2></div><Link to="/jobs" className="jd-text-link">Explore all roles <ArrowRight size={16} /></Link></div>
+        <div className="jd-category-grid">{categories.map((category) => <button key={category.label} type="button" className="jd-category-card" onClick={() => navigate(`/jobs?q=${category.query}`)}><span>{category.icon}</span><div><b>{category.label}</b><small>Explore openings</small></div><ArrowRight size={17} /></button>)}</div>
+      </section>
+
+      <section className="jd-home-section jd-featured-section">
+        <div className="jd-section-heading"><div><p className="jd-eyebrow"><BriefcaseBusiness size={14} /> Fresh from JobDekho</p><h2>Opportunities worth<br /><em>taking a closer look.</em></h2></div><Link to="/jobs" className="jd-text-link">See all jobs <ArrowRight size={16} /></Link></div>
+        <div className="jd-featured-grid">
+          {(featured.length ? featured : [{ _id: "browse", title: "Your next role could be here", company: "New opportunities arrive every day", location: "Across India" }]).map((job, index) => <article key={job._id} className="jd-featured-card" style={{ animationDelay: `${index * 90}ms` }}><div className="jd-featured-card-top"><span className="jd-company-mark">{job.company?.charAt(0)?.toUpperCase() || "J"}</span><span className="jd-new-badge">New opening</span></div><h3>{job.title}</h3><p><Building2 size={14} /> {job.company}</p><p><MapPin size={14} /> {job.location || "Location flexible"}</p><div className="jd-featured-bottom"><span>{job.salary ? `₹${Number(job.salary).toLocaleString("en-IN")}` : "Salary on request"}</span><Link to={job._id === "browse" ? "/jobs" : `/jobs/${job._id}`} aria-label={`View ${job.title}`}><ArrowRight size={17} /></Link></div></article>)}</div>
+      </section>
+
+      <section className="jd-home-section jd-how-section"><div className="jd-how-copy"><p className="jd-eyebrow"><Clock3 size={14} /> Simple from search to success</p><h2>Your job search,<br /><em>without the chaos.</em></h2><p>JobDekho gives job seekers a clear, well-organised path and gives recruiters the tools to hire without unnecessary admin.</p><Link to="/signup" className="jd-solid-link">Create your free account <ArrowRight size={16} /></Link></div><div className="jd-how-steps"><article><span>01</span><div><h3>Discover relevant roles</h3><p>Use meaningful search to find jobs that fit your experience and ambitions.</p></div></article><article><span>02</span><div><h3>Apply with confidence</h3><p>Send your application and keep the important details together.</p></div></article><article><span>03</span><div><h3>Stay ahead of each step</h3><p>Track updates, interviews, and recruiter conversations in your dashboard.</p></div></article></div></section>
+
+      <section className="jd-workspace-band">
+        <div className="jd-workspace-inner">
+          <div><p className="jd-eyebrow"><ShieldCheck size={14} /> One secure workspace</p><h2>Everything important stays <em>within reach.</em></h2></div>
+          <div className="jd-workspace-items"><span><BadgeCheck size={19} /><b>Verified opportunities</b><small>Clear details before you apply.</small></span><span><MessageCircle size={19} /><b>Direct conversations</b><small>Keep recruiter chats in context.</small></span><span><Clock3 size={19} /><b>Timely progress</b><small>Know what happens next.</small></span></div>
+        </div>
+      </section>
+
+      <section className="jd-home-section jd-paths-section">
+        <div className="jd-section-heading"><div><p className="jd-eyebrow"><UsersRound size={14} /> Built for both sides of hiring</p><h2>A better experience,<br /><em>whatever your goal.</em></h2></div></div>
+        <div className="jd-path-grid">
+          <article className="jd-path-card jd-path-seeker"><div className="jd-path-icon"><UserRoundCheck size={23} /></div><p>For job seekers</p><h3>Take your next step with clarity.</h3><span>Explore opportunities, send applications, prepare for interviews, and never lose track of an important update.</span><Link to="/signup">Start your search <ArrowRight size={16} /></Link></article>
+          <article className="jd-path-card jd-path-recruiter"><div className="jd-path-icon"><BriefcaseBusiness size={23} /></div><p>For recruiters</p><h3>Hire with less admin and more focus.</h3><span>Post roles, review applicants, schedule interviews, and move the right people through your pipeline.</span><Link to="/recruiter/post-job">Post a role <ArrowRight size={16} /></Link></article>
+        </div>
+      </section>
+
+      <section className="jd-home-section jd-final-cta"><div><p className="jd-eyebrow"><Sparkles size={14} /> Your career deserves momentum</p><h2>Make the next move<br /><em>feel like progress.</em></h2><p>Set up your JobDekho workspace in a few moments. It&apos;s free to start and built around the way real hiring happens.</p></div><div className="jd-final-actions"><Link to="/signup" className="jd-solid-link">Create an account <ArrowRight size={16} /></Link><Link to="/jobs" className="jd-outline-link">Browse open roles</Link></div></section>
+    </div>
   );
 };
 

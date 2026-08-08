@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Spinner from "./components/Spinner";
 
@@ -40,7 +41,7 @@ const App = () => {
     }
 
     setRouteLoading(true);
-    const timer = setTimeout(() => setRouteLoading(false), 800);
+    const timer = setTimeout(() => setRouteLoading(false), 240);
     return () => clearTimeout(timer);
   }, [location.pathname, location.search]);
 
@@ -170,6 +171,7 @@ const App = () => {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 };
