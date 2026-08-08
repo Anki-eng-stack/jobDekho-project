@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { BriefcaseBusiness, Building2, MapPin, IndianRupee, Search, SlidersHorizontal } from "lucide-react";
 import { API_BASE_URL } from "../config/apiConfig";
@@ -10,6 +10,7 @@ const AllJobs = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -43,6 +44,10 @@ const AllJobs = () => {
     };
     fetchJobs();
   }, []);
+
+  useEffect(() => {
+    setSearch(new URLSearchParams(location.search).get("q") || "");
+  }, [location.search]);
 
   const filtered = jobs.filter(
     (j) =>
