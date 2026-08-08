@@ -11,5 +11,6 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <HashRouter>
     <App />
+    <ToastContainer position="bottom-right" autoClose={3500} theme="light" />
   </HashRouter>
 );
