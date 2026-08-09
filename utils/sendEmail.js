@@ -16,6 +16,18 @@ const escapeHtml = (value) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
+const classifyMailError = (error) => {
+  const code = String(error?.code || "").toUpperCase();
+  const responseCode = Number(error?.responseCode || 0);
+
+  if (code === "MAIL_NOT_CONFIGURED") return "MAIL_NOT_CONFIGURED";
+  if (code === "EAUTH" || responseCode === 535) return "MAIL_AUTH_FAILED";
+  if (["ECONNECTION", "EDNS", "ESOCKET", "ETIMEDOUT", "ECONNRESET"].includes(code)) {
+    return "MAIL_UNAVAILABLE";
+  }
+  return "MAIL_SEND_FAILED";
+};
+
 const createMailer = (env = process.env, nodemailerClient = nodemailer) => {
   const smtpHost = firstValue(env.SMTP_HOST);
   const smtpUser = firstValue(env.SMTP_USER, env.MAIL_USER, env.EMAIL_USER);
@@ -171,6 +183,7 @@ const sendInterviewUpdateEmail = ({
 
 module.exports = {
   createMailer,
+  classifyMailError,
   isMailConfigured: mailer.isMailConfigured,
   verifyMailConnection: mailer.verifyMailConnection,
   sendVerificationEmail,

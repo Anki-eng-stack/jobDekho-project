@@ -16,3 +16,13 @@ exports.apiLimiter = rateLimit({
     error: "Too many requests. Please wait and try again.",
   },
 });
+
+exports.otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many OTP requests. Please wait 15 minutes and try again.",
+  },
+});

@@ -3,9 +3,11 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
 const {
-  sendVerificationEmail,
+  classifyMailError,
+  isMailConfigured,
   sendOTPEmail,
-  sendResetPasswordEmail
+  sendResetPasswordEmail,
+  verifyMailConnection
 } = require("../utils/sendEmail");
 
 // 🔐 Token generator
@@ -80,41 +82,92 @@ exports.login = async (req, res) => {
 // ✅ SEND OTP
 exports.sendOTP = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = String(req.body?.email || "").trim().toLowerCase();
     if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ error: "Enter a valid email address" });
+    }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("_id email");
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.otp = otp;
-    user.otpExpire = Date.now() + 10 * 60 * 1000;
-    await user.save();
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpExpire = new Date(Date.now() + 10 * 60 * 1000);
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { otp, otpExpire } }
+    );
 
-    await sendOTPEmail(user.email, otp);
+    try {
+      await sendOTPEmail(user.email, otp);
+    } catch (mailError) {
+      await User.updateOne(
+        { _id: user._id, otp },
+        { $unset: { otp: "", otpExpire: "" } }
+      ).catch((rollbackError) => {
+        console.error("OTP rollback failed:", rollbackError.message);
+      });
 
-    res.json({ message: "OTP sent successfully to email" });
+      const mailCode = classifyMailError(mailError);
+      console.error("OTP delivery failed:", mailCode, mailError.message);
+      const messages = {
+        MAIL_NOT_CONFIGURED: "Email service is not configured",
+        MAIL_AUTH_FAILED: "Email service authentication failed",
+        MAIL_UNAVAILABLE: "Email service is temporarily unavailable",
+        MAIL_SEND_FAILED: "Unable to send OTP email",
+      };
+      return res.status(503).json({
+        error: messages[mailCode],
+        code: mailCode,
+      });
+    }
+
+    return res.json({ message: "OTP sent successfully to email" });
   } catch (err) {
     console.error("sendOTP error:", err);
-    res.status(500).json({ error: "Error sending OTP" });
+    return res.status(500).json({ error: "Error preparing OTP" });
+  }
+};
+
+exports.getMailHealth = async (req, res) => {
+  if (!isMailConfigured) {
+    return res.status(503).json({
+      status: "unavailable",
+      code: "MAIL_NOT_CONFIGURED",
+    });
+  }
+
+  try {
+    await verifyMailConnection();
+    return res.json({ status: "ok" });
+  } catch (error) {
+    return res.status(503).json({
+      status: "unavailable",
+      code: classifyMailError(error),
+    });
   }
 };
 
 // ✅ VERIFY OTP
 exports.verifyOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const otp = String(req.body?.otp || "").trim();
     if (!email || !otp)
       return res.status(400).json({ error: "Email and OTP are required" });
 
-    const user = await User.findOne({ email }).select("+otp +otpExpire");
-    if (!user || user.otp !== otp || Date.now() > user.otpExpire) {
+    const user = await User.findOneAndUpdate(
+      {
+        email,
+        otp,
+        otpExpire: { $gt: new Date() },
+      },
+      { $unset: { otp: "", otpExpire: "" } },
+      { new: true }
+    );
+    if (!user) {
       return res.status(401).json({ error: "Invalid or expired OTP" });
     }
-
-    user.otp = undefined;
-    user.otpExpire = undefined;
-    await user.save();
 
     const token = generateToken(user);
     res.json({

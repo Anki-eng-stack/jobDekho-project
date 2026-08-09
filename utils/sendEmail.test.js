@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createMailer } = require("./sendEmail");
+const { classifyMailError, createMailer } = require("./sendEmail");
 
 test("creates one Gmail transport and sends with MAIL_USER credentials", async () => {
   const calls = { transports: [], messages: [] };
@@ -47,4 +47,11 @@ test("reports missing mail configuration clearly", async () => {
     mailer.sendMail({ to: "candidate@example.com", subject: "Test" }),
     (error) => error.code === "MAIL_NOT_CONFIGURED"
   );
+});
+
+test("classifies SMTP failures without exposing credentials", () => {
+  assert.equal(classifyMailError({ code: "EAUTH" }), "MAIL_AUTH_FAILED");
+  assert.equal(classifyMailError({ responseCode: 535 }), "MAIL_AUTH_FAILED");
+  assert.equal(classifyMailError({ code: "ETIMEDOUT" }), "MAIL_UNAVAILABLE");
+  assert.equal(classifyMailError(new Error("unknown")), "MAIL_SEND_FAILED");
 });

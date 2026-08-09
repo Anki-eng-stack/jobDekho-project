@@ -66,6 +66,11 @@ app.get("/", (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error("Unhandled Error:", err);
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    return res.status(400).json({
+      error: "Invalid JSON body",
+    });
+  }
   res.status(500).json({
     error: "Server Error",
     message: err.message,

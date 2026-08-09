@@ -10,18 +10,21 @@ const {
   requestPasswordReset,
   resetPassword,
   sendOTP,
-  verifyOTP
+  verifyOTP,
+  getMailHealth
 } = require("../controllers/authController");
 
 const { protect, authorize } = require("../middleware/authMiddleware");
+const { otpLimiter } = require("../middleware/rateLimiter");
 
 // 📌 Public Routes
 router.post("/signup", signup);
 router.post("/login", login);
 
 // 🔐 OTP-based login
-router.post("/send-otp", sendOTP);      // Send OTP to email
+router.post("/send-otp", otpLimiter, sendOTP); // Send OTP to email
 router.post("/verify-otp", verifyOTP);  // Verify OTP and login
+router.get("/mail-health", getMailHealth);
 
 // 🔐 Password Reset
 router.post("/request-reset", requestPasswordReset); 
